@@ -35,7 +35,7 @@ export const NAV_SECTIONS: NavSection[] = [
   { path: '/cves', label: 'CVEs', icon: Bug, stageC: true },
   { path: '/crypto', label: 'Crypto', icon: Coins, stageC: true },
 
-  { path: '/graph', label: 'Graph', icon: Waypoints, group: 'Correlation', stageC: true },
+  { path: '/graph', label: 'Graph', icon: Waypoints, group: 'Correlation', stageC: false },
   { path: '/timeline', label: 'Timeline', icon: Clock, stageC: true },
 
   {

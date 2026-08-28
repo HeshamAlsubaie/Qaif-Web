@@ -6,6 +6,7 @@ import { AppShell } from '@/components/shell/AppShell';
 import { NAV_SECTIONS } from '@/components/shell/navConfig';
 import { DesignSystemPage } from '@/features/design-system/DesignSystemPage';
 import { EvidencePage } from '@/features/evidence/EvidencePage';
+import { GraphPage } from '@/features/graph/GraphPage';
 import { IpsPage } from '@/features/ips/IpsPage';
 import { OverviewPage } from '@/features/overview/OverviewPage';
 import { StageCPage } from '@/features/placeholder/StageCPage';
@@ -18,6 +19,7 @@ import { ThreatsPage } from '@/features/threats/ThreatsPage';
 const PAGES: Record<string, ReactElement> = {
   '/threats': <ThreatsPage />,
   '/ips': <IpsPage />,
+  '/graph': <GraphPage />,
   '/evidence': <EvidencePage />,
   '/suggestions': <SuggestionsPage />,
   '/report': <ReportPage />,
