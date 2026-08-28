@@ -1,0 +1,1518 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "QAIF Case API",
+    "description": "Layer-6 read-only API over an assembled forensic case. Read-only except a single audited endpoint that records a human's review decision on an AI suggestion (R6).",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Healthz",
+        "description": "Liveness \u2014 no database access.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Case",
+        "description": "Case header + per-section counts.",
+        "operationId": "get_case_cases__case_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/graph": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Graph",
+        "description": "Nodes + edges, EACH carrying its tier (confirmed|probabilistic) for R4 rendering.",
+        "operationId": "get_graph_cases__case_id__graph_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/timeline": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Timeline",
+        "description": "Reconciled events with their timing-ambiguity findings kept intact.",
+        "operationId": "get_timeline_cases__case_id__timeline_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelineResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/evidence": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Evidence",
+        "description": "Evidence manifest: SHA-256 (R2) + ordered, verified custody chain (R3).",
+        "operationId": "get_evidence_cases__case_id__evidence_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/findings": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Findings",
+        "description": "Findings SEPARATED by tier: confirmed vs probabilistic in distinct lists (R4).",
+        "operationId": "get_findings_cases__case_id__findings_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/correlations": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Correlations",
+        "description": "4.3 correlations \u2014 probabilistic only, with convergence confidence + signals.",
+        "operationId": "get_correlations_cases__case_id__correlations_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/suggestions": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Suggestions",
+        "description": "AI suggestions \u2014 their own resource, flagged AI-generated/unverified/awaiting-review (R6).",
+        "operationId": "get_suggestions_cases__case_id__suggestions_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/report": {
+      "get": {
+        "tags": [
+          "case"
+        ],
+        "summary": "Get Report",
+        "description": "The canonical 6.1 report (JSON), including its reproducible integrity hash. Read-only.",
+        "operationId": "get_report_cases__case_id__report_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Report Cases  Case Id  Report Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases/{case_id}/suggestions/{suggestion_id}/review": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Review Suggestion",
+        "description": "THE ONE WRITE: record a human's approve/reject decision on one suggestion (R6/R10).\n\nWrites ONLY the suggestion's review status (who/when) and one audit row \u2014 never evidence,\ncustody, the graph, findings, or the timeline. Idempotent on a repeated identical decision.",
+        "operationId": "review_suggestion_cases__case_id__suggestions__suggestion_id__review_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "suggestion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Suggestion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CaseCounts": {
+        "properties": {
+          "evidence": {
+            "type": "integer",
+            "title": "Evidence"
+          },
+          "entities": {
+            "type": "integer",
+            "title": "Entities"
+          },
+          "relationships": {
+            "type": "integer",
+            "title": "Relationships"
+          },
+          "confirmed_findings": {
+            "type": "integer",
+            "title": "Confirmed Findings"
+          },
+          "probabilistic_findings": {
+            "type": "integer",
+            "title": "Probabilistic Findings"
+          },
+          "ai_suggestions": {
+            "type": "integer",
+            "title": "Ai Suggestions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence",
+          "entities",
+          "relationships",
+          "confirmed_findings",
+          "probabilistic_findings",
+          "ai_suggestions"
+        ],
+        "title": "CaseCounts"
+      },
+      "CaseSummaryResponse": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "case_number": {
+            "type": "string",
+            "title": "Case Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "classification": {
+            "type": "string",
+            "title": "Classification"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Opened At"
+          },
+          "opened_by": {
+            "type": "string",
+            "title": "Opened By"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/CaseCounts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "case_number",
+          "title",
+          "status",
+          "classification",
+          "opened_at",
+          "opened_by",
+          "closed_at",
+          "counts"
+        ],
+        "title": "CaseSummaryResponse"
+      },
+      "CorrelationResponse": {
+        "properties": {
+          "source_key": {
+            "type": "string",
+            "title": "Source Key"
+          },
+          "target_key": {
+            "type": "string",
+            "title": "Target Key"
+          },
+          "source_entity": {
+            "type": "string",
+            "title": "Source Entity"
+          },
+          "target_entity": {
+            "type": "string",
+            "title": "Target Entity"
+          },
+          "signal_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signal Kinds"
+          },
+          "independent_signal_count": {
+            "type": "integer",
+            "title": "Independent Signal Count"
+          },
+          "single_signal": {
+            "type": "boolean",
+            "title": "Single Signal"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "cited_evidence_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Cited Evidence Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_key",
+          "target_key",
+          "source_entity",
+          "target_entity",
+          "signal_kinds",
+          "independent_signal_count",
+          "single_signal",
+          "confidence",
+          "cited_evidence_ids"
+        ],
+        "title": "CorrelationResponse",
+        "description": "One probable link (always probabilistic, awaiting human review) with its signals."
+      },
+      "CorrelationsResponse": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "tier": {
+            "type": "string",
+            "const": "probabilistic",
+            "title": "Tier",
+            "default": "probabilistic"
+          },
+          "awaiting_human_review": {
+            "type": "boolean",
+            "title": "Awaiting Human Review",
+            "default": true
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "correlations": {
+            "items": {
+              "$ref": "#/components/schemas/CorrelationResponse"
+            },
+            "type": "array",
+            "title": "Correlations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "note",
+          "correlations"
+        ],
+        "title": "CorrelationsResponse"
+      },
+      "CustodyEntryResponse": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "prev_hash": {
+            "type": "string",
+            "title": "Prev Hash"
+          },
+          "entry_hash": {
+            "type": "string",
+            "title": "Entry Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sequence",
+          "action",
+          "actor",
+          "recorded_at",
+          "details",
+          "prev_hash",
+          "entry_hash"
+        ],
+        "title": "CustodyEntryResponse"
+      },
+      "EvidenceItemResponse": {
+        "properties": {
+          "evidence_id": {
+            "type": "integer",
+            "title": "Evidence Id"
+          },
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "evidence_type": {
+            "type": "string",
+            "title": "Evidence Type"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "acquired_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Acquired At"
+          },
+          "acquired_at_original_tz": {
+            "type": "string",
+            "title": "Acquired At Original Tz"
+          },
+          "acquired_by": {
+            "type": "string",
+            "title": "Acquired By"
+          },
+          "storage_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Version Id"
+          },
+          "custody_verified": {
+            "type": "boolean",
+            "title": "Custody Verified"
+          },
+          "custody_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custody Error"
+          },
+          "custody_chain": {
+            "items": {
+              "$ref": "#/components/schemas/CustodyEntryResponse"
+            },
+            "type": "array",
+            "title": "Custody Chain"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "original_filename",
+          "evidence_type",
+          "sha256",
+          "size_bytes",
+          "source",
+          "acquired_at",
+          "acquired_at_original_tz",
+          "acquired_by",
+          "storage_version_id",
+          "custody_verified",
+          "custody_error",
+          "custody_chain"
+        ],
+        "title": "EvidenceItemResponse"
+      },
+      "EvidenceResponse": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItemResponse"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "evidence"
+        ],
+        "title": "EvidenceResponse"
+      },
+      "FindingResponse": {
+        "properties": {
+          "finding_id": {
+            "type": "integer",
+            "title": "Finding Id"
+          },
+          "module_id": {
+            "type": "string",
+            "title": "Module Id"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "observed_at_original_tz": {
+            "type": "string",
+            "title": "Observed At Original Tz"
+          },
+          "cited_evidence_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Cited Evidence Ids"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "method_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method Description"
+          },
+          "limitations": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "finding_id",
+          "module_id",
+          "severity",
+          "title",
+          "description",
+          "observed_at",
+          "observed_at_original_tz",
+          "cited_evidence_ids",
+          "confidence",
+          "method_description",
+          "limitations"
+        ],
+        "title": "FindingResponse",
+        "description": "A finding. Probabilistic-only fields are ``None`` on confirmed findings (R4)."
+      },
+      "FindingsResponse": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "confirmed": {
+            "items": {
+              "$ref": "#/components/schemas/FindingResponse"
+            },
+            "type": "array",
+            "title": "Confirmed"
+          },
+          "probabilistic": {
+            "items": {
+              "$ref": "#/components/schemas/FindingResponse"
+            },
+            "type": "array",
+            "title": "Probabilistic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "confirmed",
+          "probabilistic"
+        ],
+        "title": "FindingsResponse",
+        "description": "Confirmed and probabilistic in DISTINCT lists \u2014 never merged (R4)."
+      },
+      "GraphEdge": {
+        "properties": {
+          "relationship_id": {
+            "type": "integer",
+            "title": "Relationship Id"
+          },
+          "rel_type": {
+            "type": "string",
+            "title": "Rel Type"
+          },
+          "source_entity_id": {
+            "type": "integer",
+            "title": "Source Entity Id"
+          },
+          "target_entity_id": {
+            "type": "integer",
+            "title": "Target Entity Id"
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "probabilistic"
+            ],
+            "title": "Tier"
+          },
+          "evidence_id": {
+            "type": "integer",
+            "title": "Evidence Id"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "relationship_id",
+          "rel_type",
+          "source_entity_id",
+          "target_entity_id",
+          "tier",
+          "evidence_id",
+          "confidence"
+        ],
+        "title": "GraphEdge",
+        "description": "A relationship as a directed edge, carrying its tier and mandatory evidence back-ref."
+      },
+      "GraphNode": {
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "title": "Entity Id"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "normalized_value": {
+            "type": "string",
+            "title": "Normalized Value"
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "probabilistic"
+            ],
+            "title": "Tier"
+          },
+          "cited_evidence_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Cited Evidence Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "entity_id",
+          "entity_type",
+          "value",
+          "normalized_value",
+          "tier",
+          "cited_evidence_ids"
+        ],
+        "title": "GraphNode",
+        "description": "An entity as a graph node. ``tier`` keeps confirmed vs probabilistic explicit (R4)."
+      },
+      "GraphResponse": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNode"
+            },
+            "type": "array",
+            "title": "Nodes"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdge"
+            },
+            "type": "array",
+            "title": "Edges"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "nodes",
+          "edges"
+        ],
+        "title": "GraphResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HealthResponse"
+      },
+      "ReviewRequest": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Decision"
+          },
+          "approver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approver",
+            "description": "Approver identity; falls back to the server's configured identity if omitted."
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "ReviewRequest",
+        "description": "A human review decision on one suggestion (R6). ``approver`` may fall back to config."
+      },
+      "ReviewResponse": {
+        "properties": {
+          "suggestion_id": {
+            "type": "integer",
+            "title": "Suggestion Id"
+          },
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Decision"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reviewed_by": {
+            "type": "string",
+            "title": "Reviewed By"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Reviewed At"
+          },
+          "changed": {
+            "type": "boolean",
+            "title": "Changed"
+          },
+          "audit_recorded": {
+            "type": "boolean",
+            "title": "Audit Recorded"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "suggestion_id",
+          "case_id",
+          "decision",
+          "status",
+          "reviewed_by",
+          "reviewed_at",
+          "changed",
+          "audit_recorded"
+        ],
+        "title": "ReviewResponse",
+        "description": "The recorded outcome: the suggestion's new status + who/when, and whether it changed."
+      },
+      "SuggestionResponse": {
+        "properties": {
+          "suggestion_id": {
+            "type": "integer",
+            "title": "Suggestion Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model_name": {
+            "type": "string",
+            "title": "Model Name"
+          },
+          "output_text": {
+            "type": "string",
+            "title": "Output Text"
+          },
+          "reasoning": {
+            "type": "string",
+            "title": "Reasoning"
+          },
+          "output_type": {
+            "type": "string",
+            "title": "Output Type"
+          },
+          "ai_generated": {
+            "type": "boolean",
+            "const": true,
+            "title": "Ai Generated",
+            "default": true
+          },
+          "unverified": {
+            "type": "boolean",
+            "title": "Unverified"
+          },
+          "awaiting_review": {
+            "type": "boolean",
+            "title": "Awaiting Review"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "cited_evidence_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Cited Evidence Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "suggestion_id",
+          "provider",
+          "model_name",
+          "output_text",
+          "reasoning",
+          "output_type",
+          "unverified",
+          "awaiting_review",
+          "status",
+          "reviewed_by",
+          "reviewed_at",
+          "cited_evidence_ids"
+        ],
+        "title": "SuggestionResponse",
+        "description": "An ``ai_suggestions`` row, flagged AI-generated + unverified; ``status`` records review."
+      },
+      "SuggestionsResponse": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestionResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "notice",
+          "items"
+        ],
+        "title": "SuggestionsResponse"
+      },
+      "TimelineAmbiguityResponse": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "method_description": {
+            "type": "string",
+            "title": "Method Description"
+          },
+          "limitations": {
+            "type": "string",
+            "title": "Limitations"
+          },
+          "event_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Event Keys"
+          },
+          "entity_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Entity Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "summary",
+          "confidence",
+          "method_description",
+          "limitations",
+          "event_keys",
+          "entity_ids"
+        ],
+        "title": "TimelineAmbiguityResponse",
+        "description": "A surfaced timing ambiguity \u2014 shown, never stripped (assumed-tz/overlap/skew/tie)."
+      },
+      "TimelineEventResponse": {
+        "properties": {
+          "event_key": {
+            "type": "string",
+            "title": "Event Key"
+          },
+          "utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Utc"
+          },
+          "original_tz": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Tz"
+          },
+          "original_local": {
+            "type": "string",
+            "title": "Original Local"
+          },
+          "tz_assumed": {
+            "type": "boolean",
+            "title": "Tz Assumed"
+          },
+          "precision": {
+            "type": "string",
+            "title": "Precision"
+          },
+          "source_module": {
+            "type": "string",
+            "title": "Source Module"
+          },
+          "event_kind": {
+            "type": "string",
+            "title": "Event Kind"
+          },
+          "entity_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Entity Ids"
+          },
+          "has_linked_entity": {
+            "type": "boolean",
+            "title": "Has Linked Entity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_key",
+          "utc",
+          "original_tz",
+          "original_local",
+          "tz_assumed",
+          "precision",
+          "source_module",
+          "event_kind",
+          "entity_ids",
+          "has_linked_entity"
+        ],
+        "title": "TimelineEventResponse"
+      },
+      "TimelineResponse": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEventResponse"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "ambiguities": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineAmbiguityResponse"
+            },
+            "type": "array",
+            "title": "Ambiguities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "summary",
+          "events",
+          "ambiguities"
+        ],
+        "title": "TimelineResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

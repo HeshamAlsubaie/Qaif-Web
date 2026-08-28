@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * QAIF DESIGN TOKENS — the forensic visual language.
+ * See TOKENS.md for the meaning of every token. This app is DARK-FIRST: the dark
+ * palette lives on :root, and <html> carries `class="dark"` so Tailwind `dark:`
+ * variants resolve. There is no light theme in stage A.
+ *
+ * All colors are stored as raw HSL channels (`H S% L%`) so Tailwind can apply
+ * opacity via `hsl(var(--x) / <alpha-value>)`.
+ */
+@layer base {
+  :root {
+    --font-sans:
+      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      sans-serif;
+    --font-mono:
+      ui-monospace, 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono',
+      monospace;
+
+    /* ---- Base security-console palette (deep, sober neutrals) ---- */
+    --background: 220 26% 6%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 22% 8%;
+    --card-foreground: 210 20% 92%;
+    --popover: 220 24% 7%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 190 82% 46%; /* restrained cyan — the single console accent */
+    --primary-foreground: 200 40% 8%;
+
+    --secondary: 220 16% 16%;
+    --secondary-foreground: 210 18% 90%;
+    --muted: 220 16% 13%;
+    --muted-foreground: 214 14% 60%;
+    --accent: 220 16% 18%;
+    --accent-foreground: 210 20% 92%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 14% 18%;
+    --input: 220 14% 20%;
+    --ring: 190 82% 46%;
+    --radius: 0.5rem;
+
+    /* ---- Elevation surfaces (deepest → highest) ---- */
+    --surface-0: 220 28% 5%; /* app shell / deepest background */
+    --surface-1: 220 22% 8%; /* cards, panels */
+    --surface-2: 220 20% 11%; /* elevated panels, table headers */
+    --surface-3: 220 18% 15%; /* hover, popovers, active rows */
+
+    /* ================================================================
+     * R4 — TIER SEPARATION, MADE VISUAL
+     * confirmed  = solid, grounded, trustworthy (cyan, full opacity, solid border)
+     * probabilistic = provisional, muted, dashed border, reduced emphasis (amber)
+     * ================================================================ */
+    --confirmed: 189 84% 47%;
+    --confirmed-foreground: 189 90% 90%;
+    --confirmed-muted: 190 55% 15%;
+    --confirmed-border: 190 66% 40%;
+
+    --probabilistic: 40 92% 58%;
+    --probabilistic-foreground: 40 92% 84%;
+    --probabilistic-muted: 38 55% 14%;
+    --probabilistic-border: 40 70% 42%;
+
+    /* ================================================================
+     * R6 — AI SUGGESTION QUARANTINE (never looks like a confirmed finding)
+     * a distinct violet accent + an "AI · unverified" signature
+     * ================================================================ */
+    --ai: 268 74% 68%;
+    --ai-foreground: 268 80% 90%;
+    --ai-muted: 268 45% 17%;
+    --ai-border: 268 58% 52%;
+
+    /* ================================================================
+     * EVIDENCE INTEGRITY — verified/secure grammar (shield/lock)
+     * verified = emerald (secure); broken = red (custody break / hash mismatch)
+     * ================================================================ */
+    --integrity-verified: 152 56% 46%;
+    --integrity-verified-foreground: 152 60% 88%;
+    --integrity-verified-muted: 152 45% 13%;
+    --integrity-verified-border: 152 48% 34%;
+
+    --integrity-broken: 0 74% 56%;
+    --integrity-broken-foreground: 0 80% 90%;
+    --integrity-broken-muted: 0 50% 15%;
+    --integrity-broken-border: 0 58% 42%;
+
+    /* ================================================================
+     * TIMELINE AMBIGUITY STATES — consistent markers per kind
+     * ================================================================ */
+    --ambiguity-assumed-tz: 40 90% 58%; /* a timezone was assumed, not recorded */
+    --ambiguity-indeterminate: 220 46% 64%; /* precision overlap → order indeterminate */
+    --ambiguity-skew: 22 88% 58%; /* cross-source clock skew */
+    --ambiguity-tie: 280 46% 68%; /* simultaneous / tie */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-surface-0 text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Hashes, hex, and IDs read in monospace so tampering is visually obvious. */
+  .font-mono,
+  code,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
+  }
+}
+
+@layer components {
+  /* ---- Typographic scale (semantic aliases over the token sizes) ---- */
+  .type-display {
+    @apply text-display;
+  }
+  .type-h1 {
+    @apply text-h1;
+  }
+  .type-h2 {
+    @apply text-h2;
+  }
+  .type-h3 {
+    @apply text-h3;
+  }
+  .type-h4 {
+    @apply text-h4;
+  }
+  .type-body {
+    @apply text-body text-foreground;
+  }
+  .type-caption {
+    @apply text-caption text-muted-foreground;
+  }
+  .type-label {
+    @apply text-micro font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* A faint grid texture for the console shell — sober, not decorative. */
+  .console-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 44px 44px;
+    background-position: center;
+  }
+}

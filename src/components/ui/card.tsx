@@ -1,0 +1,65 @@
+import * as React from 'react';
+
+import { cn } from '@/lib/utils';
+
+/**
+ * Base Card / Panel surface. This is the neutral container everything sits in; the forensic
+ * meaning (tier, AI, integrity) is layered on top via the badges and accent props, never baked
+ * into the base surface — so a plain panel never accidentally implies "confirmed".
+ */
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        'rounded-lg border border-border bg-surface-1 text-card-foreground shadow-sm',
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+Card.displayName = 'Card';
+
+const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn('flex flex-col gap-1.5 border-b border-border/60 p-4', className)}
+      {...props}
+    />
+  ),
+);
+CardHeader.displayName = 'CardHeader';
+
+const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('text-h4 leading-none tracking-tight', className)} {...props} />
+  ),
+);
+CardTitle.displayName = 'CardTitle';
+
+const CardDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('type-caption', className)} {...props} />
+  ),
+);
+CardDescription.displayName = 'CardDescription';
+
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => <div ref={ref} className={cn('p-4', className)} {...props} />,
+);
+CardContent.displayName = 'CardContent';
+
+const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn('flex items-center border-t border-border/60 p-4', className)}
+      {...props}
+    />
+  ),
+);
+CardFooter.displayName = 'CardFooter';
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
