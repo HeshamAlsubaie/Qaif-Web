@@ -1,30 +1,40 @@
-import { ShieldCheck } from 'lucide-react';
+import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
+import { CaseProvider } from '@/app/CaseContext';
+import { AppShell } from '@/components/shell/AppShell';
+import { NAV_SECTIONS } from '@/components/shell/navConfig';
 import { DesignSystemPage } from '@/features/design-system/DesignSystemPage';
-import { getApiBaseUrl } from '@/api/client';
+import { OverviewPage } from '@/features/overview/OverviewPage';
+import { StageCPage } from '@/features/placeholder/StageCPage';
+
+// Overview is fully built; every other nav section routes to the honest Stage C page. The Stage A
+// design-system showcase stays reachable at /design-system (not in the nav).
+const sectionRoutes = NAV_SECTIONS.filter((s) => s.stageC).map((s) => ({
+  path: s.path.replace(/^\//, ''),
+  element: <StageCPage />,
+}));
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <AppShell />,
+    children: [
+      { index: true, element: <OverviewPage /> },
+      ...sectionRoutes,
+      { path: 'design-system', element: <DesignSystemPage /> },
+      { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
+]);
 
 /**
- * Stage A app shell: a sober console header over the single visual deliverable, the design-system
- * page. Feature views (graph / timeline / tables) arrive in stages B and C.
+ * Stage B app: the console shell + router. Server state (TanStack Query) is provided above in
+ * providers.tsx; the selected case lives in CaseProvider so every view shares one case context.
  */
 export function App() {
   return (
-    <div className="min-h-screen bg-surface-0 text-foreground">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface-0/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="size-5 text-primary" aria-hidden />
-            <span className="text-body-lg font-semibold tracking-tight">QAIF</span>
-            <span className="type-label mt-0.5">Investigator Console</span>
-          </div>
-          <div className="type-caption font-mono">
-            api · <span className="text-foreground/80">{getApiBaseUrl()}</span>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        <DesignSystemPage />
-      </main>
-    </div>
+    <CaseProvider>
+      <RouterProvider router={router} />
+    </CaseProvider>
   );
 }

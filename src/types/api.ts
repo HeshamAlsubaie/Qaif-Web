@@ -20,6 +20,7 @@ import type {
   graphNodeSchema,
   graphResponseSchema,
   healthResponseSchema,
+  reportResponseSchema,
   reviewRequestSchema,
   reviewResponseSchema,
   suggestionResponseSchema,
@@ -58,3 +59,5 @@ export type SuggestionsResponse = z.infer<typeof suggestionsResponseSchema>;
 
 export type ReviewRequest = z.infer<typeof reviewRequestSchema>;
 export type ReviewResponse = z.infer<typeof reviewResponseSchema>;
+
+export type ReportResponse = z.infer<typeof reportResponseSchema>;

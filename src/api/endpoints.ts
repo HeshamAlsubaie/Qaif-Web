@@ -13,6 +13,7 @@ import {
   findingsResponseSchema,
   graphResponseSchema,
   healthResponseSchema,
+  reportResponseSchema,
   reviewResponseSchema,
   suggestionsResponseSchema,
   timelineResponseSchema,
@@ -24,6 +25,7 @@ import type {
   FindingsResponse,
   GraphResponse,
   HealthResponse,
+  ReportResponse,
   ReviewRequest,
   ReviewResponse,
   SuggestionsResponse,
@@ -63,6 +65,10 @@ export function getCorrelations(
 
 export function getSuggestions(caseId: number, signal?: AbortSignal): Promise<SuggestionsResponse> {
   return apiRequest(`/cases/${caseId}/suggestions`, suggestionsResponseSchema, { signal });
+}
+
+export function getReport(caseId: number, signal?: AbortSignal): Promise<ReportResponse> {
+  return apiRequest(`/cases/${caseId}/report`, reportResponseSchema, { signal });
 }
 
 /** The one state-changing call: record a human's approve/reject decision on a suggestion (R6). */

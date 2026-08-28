@@ -27,12 +27,20 @@ therefore impossible to violate by accident.
 
 | Token             | Meaning                                              |
 | ----------------- | ---------------------------------------------------- |
-| `--background`    | App background base.                                 |
+| `--background`    | App background base (deep navy / near-black).        |
 | `--foreground`    | Primary high-contrast text.                          |
-| `--primary`       | The single restrained console accent (cyan).         |
+| `--primary`       | The single restrained console accent — **calm blue** (UI chrome only). |
 | `--muted-*`       | De-emphasized text / fills.                          |
 | `--border`        | Hairline dividers and outlines.                      |
 | `--destructive`   | Hard failure / danger (generic).                     |
+
+> **Stage B re-base.** `--primary` (and `--ring`) moved from cyan to a **calm blue**.
+> Cyan now belongs to ONE meaning only — the `confirmed` tier (`--confirmed`). This is
+> deliberate: the general console (nav active state, links, focus, primary buttons, key
+> metrics) is calm navy + blue, and a **forensic** colour (cyan/amber/violet/emerald/red)
+> appears ONLY on a tier badge, an AI item, or an integrity state. Chrome must never borrow
+> a forensic hue, so a probabilistic finding can never look confirmed and an AI suggestion can
+> never look like evidence.
 
 ### Elevation surfaces (deepest → highest)
 

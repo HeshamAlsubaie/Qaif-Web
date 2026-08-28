@@ -232,3 +232,11 @@ export const reviewResponseSchema = z.object({
   changed: z.boolean(),
   audit_recorded: z.boolean(),
 });
+
+// -- report (canonical 6.1 record) ------------------------------------------
+
+/**
+ * The report is a large, canonical JSON record-of-record whose full shape is a Stage C concern.
+ * We validate only that it is a JSON object here; the Report view (Stage C) will narrow it.
+ */
+export const reportResponseSchema = z.record(z.string(), z.unknown());

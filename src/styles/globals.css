@@ -20,17 +20,22 @@
       ui-monospace, 'SFMono-Regular', 'JetBrains Mono', 'Menlo', 'Consolas', 'Liberation Mono',
       monospace;
 
-    /* ---- Base security-console palette (deep, sober neutrals) ---- */
-    --background: 220 26% 6%;
-    --foreground: 210 20% 92%;
+    /* ---- Base security-console palette (deep navy / near-black neutrals) ----
+     * STAGE B RE-BASE: the single UI accent (--primary/--ring) is now a CALM
+     * BLUE, not cyan. Cyan is reserved for the CONFIRMED tier (see --confirmed
+     * below), so the general console chrome (nav active, links, focus, primary
+     * buttons, key metrics) can never be mistaken for a forensic tier signal.
+     * Surfaces stay deep navy; only the accent hue moved. */
+    --background: 222 30% 5%;
+    --foreground: 210 22% 93%;
 
-    --card: 220 22% 8%;
-    --card-foreground: 210 20% 92%;
-    --popover: 220 24% 7%;
-    --popover-foreground: 210 20% 92%;
+    --card: 221 26% 7%;
+    --card-foreground: 210 22% 93%;
+    --popover: 221 28% 7%;
+    --popover-foreground: 210 22% 93%;
 
-    --primary: 190 82% 46%; /* restrained cyan — the single console accent */
-    --primary-foreground: 200 40% 8%;
+    --primary: 214 90% 60%; /* calm blue — the single UI/console accent (chrome only) */
+    --primary-foreground: 216 60% 8%;
 
     --secondary: 220 16% 16%;
     --secondary-foreground: 210 18% 90%;
@@ -42,16 +47,16 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 14% 18%;
+    --border: 220 15% 17%;
     --input: 220 14% 20%;
-    --ring: 190 82% 46%;
+    --ring: 214 90% 60%; /* focus ring follows the blue accent */
     --radius: 0.5rem;
 
-    /* ---- Elevation surfaces (deepest → highest) ---- */
-    --surface-0: 220 28% 5%; /* app shell / deepest background */
-    --surface-1: 220 22% 8%; /* cards, panels */
-    --surface-2: 220 20% 11%; /* elevated panels, table headers */
-    --surface-3: 220 18% 15%; /* hover, popovers, active rows */
+    /* ---- Elevation surfaces (deepest → highest) — deep navy ---- */
+    --surface-0: 224 34% 4%; /* app shell / deepest background */
+    --surface-1: 221 26% 7%; /* cards, panels */
+    --surface-2: 220 22% 10%; /* elevated panels, table headers, nav rail */
+    --surface-3: 219 20% 14%; /* hover, popovers, active rows */
 
     /* ================================================================
      * R4 — TIER SEPARATION, MADE VISUAL
