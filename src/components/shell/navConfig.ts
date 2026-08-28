@@ -30,16 +30,22 @@ export interface NavSection {
 export const NAV_SECTIONS: NavSection[] = [
   { path: '/', label: 'Overview', icon: LayoutGrid, group: 'Case', stageC: false },
 
-  { path: '/threats', label: 'Threats', icon: ShieldAlert, group: 'Findings', stageC: true },
-  { path: '/network', label: 'IPs / Network', icon: Network, stageC: true },
+  { path: '/threats', label: 'Threats', icon: ShieldAlert, group: 'Findings', stageC: false },
+  { path: '/ips', label: 'IPs / Network', icon: Network, stageC: false },
   { path: '/cves', label: 'CVEs', icon: Bug, stageC: true },
   { path: '/crypto', label: 'Crypto', icon: Coins, stageC: true },
 
   { path: '/graph', label: 'Graph', icon: Waypoints, group: 'Correlation', stageC: true },
   { path: '/timeline', label: 'Timeline', icon: Clock, stageC: true },
 
-  { path: '/evidence', label: 'Evidence', icon: HardDriveDownload, group: 'Custody', stageC: true },
-  { path: '/suggestions', label: 'AI Suggestions', icon: Bot, stageC: true },
+  {
+    path: '/evidence',
+    label: 'Evidence',
+    icon: HardDriveDownload,
+    group: 'Custody',
+    stageC: false,
+  },
+  { path: '/suggestions', label: 'AI Suggestions', icon: Bot, stageC: false },
   { path: '/alerts', label: 'Alerts (Wazuh)', icon: BellRing, stageC: true },
-  { path: '/report', label: 'Report', icon: FileText, stageC: true },
+  { path: '/report', label: 'Report', icon: FileText, stageC: false },
 ];

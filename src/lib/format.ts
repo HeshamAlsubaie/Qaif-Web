@@ -13,6 +13,28 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+/**
+ * Format an instant explicitly in UTC — used on the evidence/custody views where the label says
+ * "UTC" and precision matters (R8). Rendering it in the browser's local zone there would contradict
+ * the label and undercut the court-integrity story.
+ */
+export function formatUtc(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return (
+    d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'UTC',
+      hour12: false,
+    }) + ' UTC'
+  );
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;

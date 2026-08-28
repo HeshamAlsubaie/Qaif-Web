@@ -116,11 +116,19 @@ export function useSuggestions(caseId: number | null): UseQueryResult<Suggestion
   });
 }
 
-export function useReport(caseId: number | null): UseQueryResult<ReportResponse> {
+/**
+ * The report is expensive to assemble server-side, so it is fetched on demand: pass
+ * `{ enabled: true }` only once the user asks for it (a button), not on page mount.
+ */
+export function useReport(
+  caseId: number | null,
+  options: { enabled?: boolean } = {},
+): UseQueryResult<ReportResponse> {
   return useQuery({
     queryKey: caseId !== null ? queryKeys.report(caseId) : ['report', 'none'],
     queryFn: ({ signal }) => getReport(caseId as number, signal),
-    enabled: caseId !== null,
+    enabled: caseId !== null && (options.enabled ?? true),
+    staleTime: 60_000,
   });
 }
 
