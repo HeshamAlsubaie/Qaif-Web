@@ -21,6 +21,7 @@ import {
   getTimeline,
   lookupIndicator,
   reviewSuggestion,
+  searchCases,
 } from '@/api/endpoints';
 import {
   type CaseSummaryResponse,
@@ -33,6 +34,7 @@ import {
   type ReportResponse,
   type ReviewDecision,
   type ReviewResponse,
+  type SearchResponse,
   type SuggestionsResponse,
   type TimelineResponse,
 } from '@/types/api';
@@ -143,6 +145,18 @@ export function useReport(
 export function useIocLookup() {
   return useMutation<LookupResponse, Error, string>({
     mutationFn: (indicator) => lookupIndicator(indicator),
+  });
+}
+
+/**
+ * Cross-case case search. A GET read, but modelled as a mutation because it is user-triggered
+ * (fired on submit, not on mount) — the same imperative shape as `useIocLookup`. It reads only
+ * (SELECT-only on the backend) and writes nothing, so there is nothing to invalidate on success.
+ * The typed, R4-validated `SearchResponse` reaches the view only after boundary validation.
+ */
+export function useCaseSearch() {
+  return useMutation<SearchResponse, Error, string>({
+    mutationFn: (q) => searchCases(q),
   });
 }
 

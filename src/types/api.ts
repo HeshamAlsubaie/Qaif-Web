@@ -25,6 +25,7 @@ import type {
   reportResponseSchema,
   reviewRequestSchema,
   reviewResponseSchema,
+  searchResponseSchema,
   suggestionResponseSchema,
   suggestionsResponseSchema,
   timelineAmbiguityResponseSchema,
@@ -66,3 +67,12 @@ export type ReportResponse = z.infer<typeof reportResponseSchema>;
 
 export type LookupSourceResult = z.infer<typeof lookupSourceResultSchema>;
 export type LookupResponse = z.infer<typeof lookupResponseSchema>;
+
+export type SearchResponse = z.infer<typeof searchResponseSchema>;
+export type SearchCaseHit = SearchResponse['cases'][number];
+export type SearchEvidenceHit = SearchResponse['evidence'][number];
+export type SearchEntityHit = SearchResponse['entities'][number];
+// A confirmed and a probabilistic hit differ only by their pinned `tier` literal; the union is the
+// row type shared by the two rendering groups.
+export type SearchFindingHit =
+  SearchResponse['findings_confirmed'][number] | SearchResponse['findings_probabilistic'][number];

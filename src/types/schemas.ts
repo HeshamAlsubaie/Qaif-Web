@@ -268,6 +268,95 @@ export const lookupResponseSchema = z.object({
   results: z.array(lookupSourceResultSchema),
 });
 
+// -- case search (cross-case, SELECT-only; GET /search) ---------------------
+
+export const searchCaseHitSchema = z.object({
+  case_id: z.number().int(),
+  case_number: z.string(),
+  title: z.string(),
+  classification: z.string(),
+  status: z.string(),
+  opened_at: z.string(),
+  closed_at: z.string().nullable(),
+});
+
+export const searchEvidenceHitSchema = z.object({
+  case_id: z.number().int(),
+  evidence_id: z.number().int(),
+  original_filename: z.string(),
+  evidence_type: z.string(),
+  sha256: z.string(),
+  source_description: z.string().nullable(),
+  // R8: the UTC instant and its original-tz companion travel together.
+  acquired_at: z.string(),
+  acquired_at_original_tz: z.string(),
+});
+
+export const searchEntityHitSchema = z.object({
+  case_id: z.number().int(),
+  entity_id: z.number().int(),
+  entity_type: z.string(),
+  value: z.string(),
+  normalized_value: z.string(),
+  tier: tierSchema, // per-row tier, derived from confidence server-side (R4)
+  confidence: z.number().nullable(),
+  first_seen: z.string(),
+  first_seen_original_tz: z.string(),
+  last_seen: z.string(),
+  last_seen_original_tz: z.string(),
+});
+
+// R4 ENFORCED AT THE BOUNDARY. The two finding groups are DISTINCT schemas, each pinned to its tier
+// literal. A probabilistic row (`tier: 'probabilistic'`) therefore FAILS validation if it appears
+// in the `findings_confirmed` array — the confirmed schema accepts only `tier: 'confirmed'`, and
+// vice-versa. The R4 separation is thus a runtime contract, not a rendering convention: a payload
+// that merges the tiers is rejected before any component sees it.
+const searchFindingBase = {
+  case_id: z.number().int(),
+  finding_id: z.number().int(),
+  module_id: z.string(),
+  severity: z.string(),
+  title: z.string(),
+  description: z.string(),
+  confidence: z.number().nullable(),
+  method_description: z.string().nullable(),
+  limitations: z.string().nullable(),
+  // R8: observed_at + its original-tz companion.
+  observed_at: z.string(),
+  observed_at_original_tz: z.string(),
+};
+
+export const searchConfirmedFindingSchema = z.object({
+  ...searchFindingBase,
+  tier: z.literal('confirmed'),
+});
+
+export const searchProbabilisticFindingSchema = z.object({
+  ...searchFindingBase,
+  tier: z.literal('probabilistic'),
+});
+
+export const searchCountsSchema = z.object({
+  cases: z.number().int(),
+  evidence: z.number().int(),
+  entities: z.number().int(),
+  findings_confirmed: z.number().int(),
+  findings_probabilistic: z.number().int(),
+});
+
+export const searchResponseSchema = z.object({
+  query: z.string(),
+  case_id: z.number().int().nullable(),
+  counts: searchCountsSchema,
+  cases: z.array(searchCaseHitSchema),
+  evidence: z.array(searchEvidenceHitSchema),
+  entities: z.array(searchEntityHitSchema),
+  // Separate arrays, each tier-pinned — never one merged list (R4).
+  findings_confirmed: z.array(searchConfirmedFindingSchema),
+  findings_probabilistic: z.array(searchProbabilisticFindingSchema),
+  truncated: z.record(z.string(), z.boolean()),
+});
+
 // -- report (canonical 6.1 record) ------------------------------------------
 
 /**

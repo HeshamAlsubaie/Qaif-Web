@@ -16,6 +16,7 @@ import {
   lookupResponseSchema,
   reportResponseSchema,
   reviewResponseSchema,
+  searchResponseSchema,
   suggestionsResponseSchema,
   timelineResponseSchema,
 } from '@/types/schemas';
@@ -30,6 +31,7 @@ import type {
   ReportResponse,
   ReviewRequest,
   ReviewResponse,
+  SearchResponse,
   SuggestionsResponse,
   TimelineResponse,
 } from '@/types/api';
@@ -84,6 +86,25 @@ export function lookupIndicator(indicator: string, signal?: AbortSignal): Promis
   return apiRequest('/lookup', lookupResponseSchema, {
     method: 'POST',
     body: { indicator },
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * Cross-case, SELECT-only case search. A GET read (it does NOT count toward the single-write-route
+ * budget). Matching is case-insensitive literal substring across cases, evidence, entities, and
+ * BOTH finding tables; confirmed and probabilistic findings come back in separate arrays (R4). The
+ * response is Zod-validated at the boundary, so a payload that merges the tiers is rejected here.
+ */
+export function searchCases(
+  q: string,
+  opts: { caseId?: number; limit?: number } = {},
+  signal?: AbortSignal,
+): Promise<SearchResponse> {
+  const params = new URLSearchParams({ q });
+  if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+  if (opts.caseId !== undefined) params.set('case_id', String(opts.caseId));
+  return apiRequest(`/search?${params.toString()}`, searchResponseSchema, {
     ...(signal ? { signal } : {}),
   });
 }

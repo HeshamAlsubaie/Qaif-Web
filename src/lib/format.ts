@@ -35,6 +35,47 @@ export function formatUtc(iso: string): string {
   );
 }
 
+/**
+ * True when a recorded original timezone IS UTC (an IANA "UTC"/"Z" or an explicit zero offset).
+ * Used to decide whether the original recorded reading differs from the reconciled UTC instant — if
+ * it does not, callers say "recorded in UTC" rather than repeating one clock under a second label.
+ */
+export function isUtcZone(tz: string): boolean {
+  const t = tz.trim();
+  return t === 'UTC' || t === 'Z' || /^[+-]00:?00$/.test(t);
+}
+
+/**
+ * Render a UTC ISO instant as the WALL-CLOCK reading in `tz` — the original recorded time (R8
+ * provenance): the SAME instant expressed in the zone it was recorded in, never a fabricated time.
+ * Supports IANA zone names (via Intl) and fixed ±HH:MM offsets (applied manually, since Intl
+ * rejects raw offsets). Returns null when `tz` is neither, so a caller can fall back to showing the
+ * zone label alone rather than inventing a clock reading.
+ */
+export function formatInZone(iso: string, tz: string): string | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const opts: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  };
+  const zone = tz.trim();
+  try {
+    return d.toLocaleString(undefined, { ...opts, timeZone: zone });
+  } catch {
+    // `zone` is not an IANA name Intl accepts — fall back to a fixed ±HH:MM / ±HHMM offset.
+    const m = /^([+-])(\d{2}):?(\d{2})$/.exec(zone);
+    if (!m) return null;
+    const minutes = (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3]));
+    const shifted = new Date(d.getTime() + minutes * 60_000);
+    return shifted.toLocaleString(undefined, { ...opts, timeZone: 'UTC' });
+  }
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;

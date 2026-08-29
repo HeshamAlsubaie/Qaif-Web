@@ -1,7 +1,7 @@
 import { CircleSlash, FolderSearch, Globe, Info, Loader2, ScanSearch, Search } from 'lucide-react';
 import * as React from 'react';
 
-import { useIocLookup } from '@/api/queries';
+import { useCaseSearch, useIocLookup } from '@/api/queries';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/States';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { describeApiError } from '@/lib/apiError';
 import { titleCase } from '@/lib/format';
 import type { LookupResponse } from '@/types/api';
 
+import { CaseSearchResults } from './CaseSearchResults';
 import { SourceResultCard } from './SourceResultCard';
 
 // Friendly labels for the detected-type badge; anything unmapped falls back to titleCase.
@@ -115,7 +116,7 @@ function IocSearch() {
         {lookup.isIdle && <IdleHint />}
         {lookup.isPending && <LoadingState message="Querying external intelligence sources…" />}
         {lookup.isError && (
-          <IocError
+          <RequestErrorState
             error={lookup.error}
             onRetry={() => {
               if (lookup.variables !== undefined) lookup.mutate(lookup.variables);
@@ -139,7 +140,7 @@ function IdleHint() {
   );
 }
 
-function IocError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+function RequestErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   const { title, message } = describeApiError(error);
   return (
     <div className="rounded-lg border border-border">
@@ -220,45 +221,71 @@ function ExternalIntelNotice() {
 // -- 2. Case search (laid out, honestly marked next) ------------------------
 
 function CaseSearch() {
+  const [value, setValue] = React.useState('');
+  const search = useCaseSearch();
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const query = value.trim();
+    if (query.length < 2 || search.isPending) return;
+    search.mutate(query);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="type-label flex items-center gap-2">
-              <FolderSearch className="size-4" aria-hidden />
-              Case Search
-            </span>
-            <CardTitle>Search my cases</CardTitle>
-          </div>
-          <Badge variant="muted">Coming next</Badge>
-        </div>
-        <CardDescription>
-          Full-text and entity search across the cases you have access to.
-        </CardDescription>
+        <span className="type-label flex items-center gap-2">
+          <FolderSearch className="size-4" aria-hidden />
+          Case Search
+        </span>
+        <CardTitle>Search my cases</CardTitle>
+        {/* "across all cases" is accurate TODAY because the API has no case-access filtering (RBAC)
+            yet, so a search genuinely spans every case. When per-user case access lands, change this
+            back to "across the cases you have access to" and pass the access scope to GET /search —
+            until then, the old wording would overclaim. */}
+        <CardDescription>Full-text and entity search across all cases.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2 sm:flex-row">
+      <CardContent className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <input
-              disabled
-              placeholder="Search my cases (coming soon)…"
-              aria-label="Search my cases (not yet available)"
-              className="h-10 w-full cursor-not-allowed rounded-md border border-border bg-surface-0 pl-9 pr-3 text-body text-muted-foreground opacity-60 outline-none"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              placeholder="Search cases, evidence, entities, and findings…"
+              autoComplete="off"
+              aria-label="Search my cases"
+              className="h-10 w-full rounded-md border border-border bg-surface-0 pl-9 pr-3 text-body text-foreground outline-none focus:border-primary/70"
             />
           </div>
-          <Button variant="outline" disabled>
-            Search
+          <Button type="submit" disabled={value.trim().length < 2 || search.isPending}>
+            {search.isPending ? (
+              <>
+                <Loader2 className="animate-spin" aria-hidden />
+                Searching…
+              </>
+            ) : (
+              <>
+                <Search aria-hidden />
+                Search
+              </>
+            )}
           </Button>
-        </div>
-        <p className="text-micro text-muted-foreground">
-          There is no case-search endpoint yet, so this bar is intentionally inert — results here
-          would be fabricated. It marks the second search mode, wired once the backend lands.
-        </p>
+        </form>
+
+        {search.isPending && <LoadingState message="Searching all cases…" />}
+        {search.isError && (
+          <RequestErrorState
+            error={search.error}
+            onRetry={() => {
+              if (search.variables !== undefined) search.mutate(search.variables);
+            }}
+          />
+        )}
+        {search.isSuccess && <CaseSearchResults data={search.data} />}
       </CardContent>
     </Card>
   );
