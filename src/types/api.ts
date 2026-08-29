@@ -17,6 +17,9 @@ import type {
   cryptoTraceSummarySchema,
   cryptoTransactionSchema,
   cryptoWalletSchema,
+  cveNvdMetadataSchema,
+  cveOtxContextSchema,
+  cveVtContextSchema,
   custodyEntryResponseSchema,
   evidenceItemResponseSchema,
   evidenceResponseSchema,
@@ -80,6 +83,10 @@ export type ReportResponse = z.infer<typeof reportResponseSchema>;
 
 export type LookupSourceResult = z.infer<typeof lookupSourceResultSchema>;
 export type LookupResponse = z.infer<typeof lookupResponseSchema>;
+
+export type CveNvdMetadata = z.infer<typeof cveNvdMetadataSchema>;
+export type CveOtxContext = z.infer<typeof cveOtxContextSchema>;
+export type CveVtContext = z.infer<typeof cveVtContextSchema>;
 
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
 export type SearchCaseHit = SearchResponse['cases'][number];

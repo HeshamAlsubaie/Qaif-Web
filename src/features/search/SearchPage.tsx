@@ -11,6 +11,8 @@ import { describeApiError } from '@/lib/apiError';
 import { titleCase } from '@/lib/format';
 import type { LookupResponse } from '@/types/api';
 
+import { CveDashboard } from '@/features/cve/CveDashboard';
+
 import { CaseSearchResults } from './CaseSearchResults';
 import { SourceResultCard } from './SourceResultCard';
 
@@ -24,6 +26,7 @@ const TYPE_LABELS: Record<string, string> = {
   btc_address: 'BTC address',
   eth_tx: 'ETH transaction',
   btc_tx: 'BTC transaction',
+  cve: 'CVE',
   unknown: 'Unknown',
 };
 
@@ -179,7 +182,11 @@ function IocResults({ data }: { data: LookupResponse }) {
       ) : (
         <>
           <ExternalIntelNotice />
-          {data.results.length === 0 ? (
+          {data.detected_type === 'cve' ? (
+            // A CVE renders the rich, VirusTotal-style dashboard instead of the generic per-source
+            // cards — same lookup payload, same external-claim discipline, richer presentation.
+            <CveDashboard data={data} />
+          ) : data.results.length === 0 ? (
             <Card>
               <EmptyState
                 icon={Info}

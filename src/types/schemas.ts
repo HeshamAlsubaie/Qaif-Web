@@ -268,6 +268,70 @@ export const lookupResponseSchema = z.object({
   results: z.array(lookupSourceResultSchema),
 });
 
+// -- CVE dashboard (a lookup detected_type === 'cve') -----------------------
+
+/**
+ * Schemas for the CVE payloads a `POST /lookup` returns when the indicator is a CVE. These are a
+ * SECOND, VIEW-LEVEL boundary layered ON the generic lookup boundary above: the outer envelope
+ * already pinned `tier: external-source-claim` / `confirmed: false` on every result (so a CVE
+ * record — NVD included, authoritative but still a CLAIM — can never render as confirmed evidence).
+ * These schemas narrow the per-source `payload.metadata` so the dashboard reads typed fields, and
+ * every field is `.optional()` — a missing field degrades to "absent" (the section is omitted),
+ * never fabricated. Each CVE source's payload is the serialized report `{ configured, metadata }`.
+ */
+export const cveSourcePayloadSchema = z.object({
+  configured: z.boolean().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const cveCvssSchema = z.object({
+  version: z.string().nullish(),
+  base_score: z.number().nullish(),
+  severity: z.string().nullish(),
+  vector: z.string().nullish(),
+  source: z.string().nullish(),
+  type: z.string().nullish(),
+});
+
+export const cveKevSchema = z.object({
+  known_exploited: z.boolean(),
+  cisa_exploit_add: z.string().nullish(),
+  cisa_action_due: z.string().nullish(),
+  cisa_vulnerability_name: z.string().nullish(),
+  cisa_required_action: z.string().nullish(),
+});
+
+export const cveNvdMetadataSchema = z.object({
+  cve_id: z.string().nullish(),
+  published: z.string().nullish(),
+  last_modified: z.string().nullish(),
+  vuln_status: z.string().nullish(),
+  description: z.string().nullish(),
+  cvss: cveCvssSchema.nullish(),
+  affected_products: z.array(z.string()).optional().default([]),
+  affected_products_total: z.number().optional().default(0),
+  references: z.array(z.string()).optional().default([]),
+  references_total: z.number().optional().default(0),
+  cisa_kev: cveKevSchema.nullish(),
+});
+
+/** OTX CVE context — in-the-wild discussion: pulses, the actors and malware families named. */
+export const cveOtxContextSchema = z.object({
+  pulse_count: z.number().optional(),
+  pulses: z.array(z.string()).optional().default([]),
+  malware_families: z.array(z.string()).optional().default([]),
+  adversaries: z.array(z.string()).optional().default([]),
+  references: z.array(z.string()).optional().default([]),
+  references_total: z.number().optional(),
+});
+
+/** VirusTotal CVE collection context — the human blurb plus VT's relationship counts. */
+export const cveVtContextSchema = z.object({
+  name: z.string().nullish(),
+  description: z.string().nullish(),
+  related_counts: z.record(z.string(), z.number()).optional().default({}),
+});
+
 // -- case search (cross-case, SELECT-only; GET /search) ---------------------
 
 export const searchCaseHitSchema = z.object({
