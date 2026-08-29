@@ -10,7 +10,12 @@
  *
  * All styling (tier grammar, confidence-decay sizing, root marker) lives in cryptoGraphStyle.ts.
  */
-import cytoscape, { type Core, type ElementDefinition, type EventObject } from 'cytoscape';
+import cytoscape, {
+  type Core,
+  type ElementDefinition,
+  type EventObject,
+  type Layouts,
+} from 'cytoscape';
 import * as React from 'react';
 
 import {
@@ -20,7 +25,12 @@ import {
   type CryptoGraphModel,
   type CryptoGraphNode,
 } from './cryptoGraph';
-import { buildCryptoLayout, buildCryptoStylesheet } from './cryptoGraphStyle';
+import {
+  buildCryptoLayout,
+  buildCryptoStylesheet,
+  buildLayeredLayout,
+  computeLayeredPositions,
+} from './cryptoGraphStyle';
 import { shortenMiddle } from './cryptoModel';
 import type { LayoutName } from '@/features/graph/graphStyle';
 
@@ -71,6 +81,29 @@ function toCryptoElements(model: CryptoGraphModel): ElementDefinition[] {
   return [...nodes, ...edges];
 }
 
+/**
+ * Start the right layout for the current mode, tracking it so it can be STOPPED on the next run or on
+ * teardown. Stopping the previous layout is what prevents a destroyed instance from still receiving
+ * animation ticks (the source of the `isHeadless` error flood). The default ("breadthfirst" in the
+ * toolbar = "Hierarchy") is the layered LR-by-hop preset; Force/Grid reuse the base layouts.
+ */
+function startLayout(
+  cy: Core,
+  layoutRef: React.MutableRefObject<Layouts | null>,
+  model: CryptoGraphModel,
+  visibleIds: ReadonlySet<number>,
+  layout: LayoutName,
+): void {
+  layoutRef.current?.stop();
+  const options =
+    layout === 'breadthfirst'
+      ? buildLayeredLayout(computeLayeredPositions(model, visibleIds))
+      : buildCryptoLayout(layout);
+  const run = cy.layout(options);
+  layoutRef.current = run;
+  run.run();
+}
+
 /** Push display + `+N` labels for the current visible set onto the live instance (no re-add). */
 function applyVisibility(cy: Core, model: CryptoGraphModel, visibleIds: ReadonlySet<number>): void {
   cy.batch(() => {
@@ -102,11 +135,15 @@ export const CryptoGraphCanvas = React.forwardRef<
 ) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const cyRef = React.useRef<Core | null>(null);
+  const layoutRef = React.useRef<Layouts | null>(null);
 
   const handlers = React.useRef({ onNodeTap, onEdgeTap, onBackgroundTap });
   handlers.current = { onNodeTap, onEdgeTap, onBackgroundTap };
 
-  const rootIds = React.useMemo(() => model.rootIds.map(cryptoNodeId), [model]);
+  // Keep the latest data/layout in a ref so the mount-only effect and the imperative handle always
+  // read current values without re-initialising the instance.
+  const state = React.useRef({ model, visibleIds, layout });
+  state.current = { model, visibleIds, layout };
 
   // Skip the update effect's first run — the mount effect already applies visibility + lays out.
   const skipUpdate = React.useRef(true);
@@ -128,16 +165,20 @@ export const CryptoGraphCanvas = React.forwardRef<
     cyRef.current = cy;
 
     applyVisibility(cy, model, visibleIds);
-    cy.layout(buildCryptoLayout(layout, rootIds)).run();
+    startLayout(cy, layoutRef, model, visibleIds, layout);
     skipUpdate.current = true;
 
+    // Guard every handler against a destroyed instance — a late tap must never touch a torn-down cy.
     cy.on('tap', 'node', (evt: EventObject) => {
+      if (cy.destroyed()) return;
       handlers.current.onNodeTap(evt.target.data('node') as CryptoGraphNode);
     });
     cy.on('tap', 'edge', (evt: EventObject) => {
+      if (cy.destroyed()) return;
       handlers.current.onEdgeTap(evt.target.data('edge') as CryptoGraphEdge);
     });
     cy.on('tap', (evt: EventObject) => {
+      if (cy.destroyed()) return;
       if (evt.target === cy) {
         cy.elements().unselect();
         handlers.current.onBackgroundTap();
@@ -145,6 +186,12 @@ export const CryptoGraphCanvas = React.forwardRef<
     });
 
     return () => {
+      // Ordered teardown: stop the running layout (halts its animation ticks), drop all listeners,
+      // THEN destroy. Without stopping the layout first, its queued frames fire on a null instance —
+      // the `isHeadless` error flood. cyRef is cleared so nothing else re-enters the dead instance.
+      layoutRef.current?.stop();
+      layoutRef.current = null;
+      cy.removeAllListeners();
       cy.destroy();
       cyRef.current = null;
     };
@@ -155,30 +202,39 @@ export const CryptoGraphCanvas = React.forwardRef<
   // chosen layout changes. Not on the mount render, and never on an unrelated re-render.
   React.useEffect(() => {
     const cy = cyRef.current;
-    if (!cy) return;
+    if (!cy || cy.destroyed()) return;
     if (skipUpdate.current) {
       skipUpdate.current = false;
       return;
     }
     applyVisibility(cy, model, visibleIds);
-    cy.layout(buildCryptoLayout(layout, rootIds)).run();
+    startLayout(cy, layoutRef, model, visibleIds, layout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleIds, layout]);
 
   React.useImperativeHandle(ref, () => ({
     fit: () => {
       const cy = cyRef.current;
-      if (cy) cy.animate({ fit: { eles: cy.elements(':visible'), padding: 48 } }, { duration: 250 });
+      if (cy && !cy.destroyed()) {
+        cy.animate({ fit: { eles: cy.elements(':visible'), padding: 48 } }, { duration: 250 });
+      }
     },
     resetZoom: () => {
       const cy = cyRef.current;
-      if (cy) cy.animate({ zoom: 1, center: { eles: cy.elements(':visible') } }, { duration: 250 });
+      if (cy && !cy.destroyed()) {
+        cy.animate({ zoom: 1, center: { eles: cy.elements(':visible') } }, { duration: 250 });
+      }
     },
     runLayout: () => {
-      cyRef.current?.layout(buildCryptoLayout(layout, rootIds)).run();
+      const cy = cyRef.current;
+      if (cy && !cy.destroyed()) {
+        const { model: m, visibleIds: v, layout: l } = state.current;
+        startLayout(cy, layoutRef, m, v, l);
+      }
     },
     clearSelection: () => {
-      cyRef.current?.elements().unselect();
+      const cy = cyRef.current;
+      if (cy && !cy.destroyed()) cy.elements().unselect();
     },
   }));
 

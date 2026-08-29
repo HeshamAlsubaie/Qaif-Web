@@ -76,6 +76,20 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
     setExpanded(new Set(model.rootIds));
   }, [model]);
 
+  // What the canvas is currently bounding — stated on-canvas so the shown subset is DISCLOSED, never
+  // a silent truncation of the 275-address trace. Computed before any early return (hook order).
+  const visibleHops = React.useMemo(() => {
+    let hop1 = 0;
+    let maxHop = 0;
+    for (const id of visibleIds) {
+      const node = model.nodeById.get(id);
+      if (!node) continue;
+      if (node.hop === 1) hop1 += 1;
+      if (node.hop > maxHop) maxHop = node.hop;
+    }
+    return { hop1, maxHop };
+  }, [visibleIds, model]);
+
   if (model.nodes.length === 0) {
     return (
       <Card>
@@ -92,6 +106,17 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
     (acc, e) => (visibleIds.has(e.sourceId) && visibleIds.has(e.targetId) ? acc + 1 : acc),
     0,
   );
+
+  const total = model.nodes.length;
+  const shown = visibleIds.size;
+  const disclosure =
+    visibleHops.maxHop <= 1
+      ? `Showing origin + ${visibleHops.hop1} hop-1 counterpart${
+          visibleHops.hop1 === 1 ? 'y' : 'ies'
+        } · ${shown} of ${total} addresses${
+          model.maxHop >= 2 ? ' · click a node to reveal its hop-2' : ''
+        }`
+      : `Showing ${shown} of ${total} addresses across hops 0–${visibleHops.maxHop} · click a node to reveal more`;
 
   return (
     <div className="flex flex-col gap-3">
@@ -117,7 +142,8 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
           </span>
         </div>
 
-        {/* The canvas stage. Legend overlays bottom-left; the detail panel slides in from the right. */}
+        {/* The canvas stage. Disclosure banner top-left, legend bottom-left; the detail panel slides
+            in from the right. */}
         <div className="console-grid relative h-[68vh] min-h-[520px] w-full bg-surface-0">
           <CryptoGraphCanvas
             ref={canvasRef}
@@ -128,6 +154,10 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
             onEdgeTap={handleEdgeTap}
             onBackgroundTap={() => setSelection(null)}
           />
+
+          <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[min(90%,42rem)] rounded-md border border-probabilistic/40 bg-surface-1/90 px-3 py-1.5 text-caption text-foreground shadow-lg backdrop-blur">
+            {disclosure}
+          </div>
 
           <div className="absolute bottom-4 left-4 z-10">
             <CryptoGraphLegend />
@@ -146,10 +176,12 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
       </Card>
 
       <p className="px-1 text-micro text-muted-foreground">
-        Progressive reveal: the origin and its direct (hop-1) counterparties are shown; deeper hops
-        stay hidden until you click a node to reveal the wallets it funded — from the trace already
-        loaded, never a new fetch. Node size and fade encode confidence (it decays per hop); arrows
-        show money flowing outward. Everything is probabilistic (R4) — a trace is an indicator, not
+        Laid out left-to-right by hop: the sanctioned origin sits at the left, its counterparties
+        column by column rightward, so horizontal distance is distance from the origin. Progressive
+        reveal — deeper hops stay hidden until you click a node to reveal its counterparties, from the
+        trace already loaded, never a new fetch. Node size and fade encode confidence (it decays per
+        hop); arrows show real money direction — inflows to the origin and outflows both. Select an
+        edge for its amount and txid. Everything is probabilistic (R4) — a trace is an indicator, not
         confirmed evidence.
       </p>
     </div>
