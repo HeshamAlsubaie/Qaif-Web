@@ -12,7 +12,7 @@ import { ListTree } from 'lucide-react';
 import * as React from 'react';
 
 import { GraphToolbar } from '@/features/graph/GraphToolbar';
-import { type LayoutName } from '@/features/graph/graphStyle';
+import { LAYOUTS, type LayoutName } from '@/features/graph/graphStyle';
 import { EmptyState } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -125,6 +125,7 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
           <div className="flex flex-wrap items-center gap-2">
             <GraphToolbar
               layout={layout}
+              layouts={LAYOUTS}
               onLayoutChange={setLayout}
               onFit={() => canvasRef.current?.fit()}
               onResetZoom={() => canvasRef.current?.resetZoom()}

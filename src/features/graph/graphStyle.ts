@@ -190,3 +190,17 @@ export const LAYOUTS: LayoutMeta[] = [
   { name: 'breadthfirst', label: 'Hierarchy' },
   { name: 'grid', label: 'Grid' },
 ];
+
+/**
+ * The GENERAL Graph view's layout options — the three whole-graph layouts PLUS "Diamond". Diamond is
+ * special: unlike Force/Hierarchy/Grid (which arrange the FULL node set), it is the one option that
+ * also SETS NODE SCOPE — it renders only the diamond-scoped subset (the high-level entities mapped to
+ * the four vertices), because a diamond of every node is meaningless. Kept OUT of the shared
+ * ``LAYOUTS`` so the crypto graph's toolbar (which reuses ``LAYOUTS``) never offers it.
+ */
+export type GraphLayoutName = LayoutName | 'diamond';
+
+export const GRAPH_LAYOUTS: readonly { name: GraphLayoutName; label: string }[] = [
+  ...LAYOUTS,
+  { name: 'diamond', label: 'Diamond' },
+];

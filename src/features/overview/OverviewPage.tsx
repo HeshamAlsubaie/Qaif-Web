@@ -1,22 +1,15 @@
 import { BadgeCheck, Bot, CircleDashed, HardDriveDownload, Network, Waypoints } from 'lucide-react';
 
-import {
-  useCase,
-  useCorrelations,
-  useEvidence,
-  useFindings,
-  useGraph,
-  useSuggestions,
-} from '@/api/queries';
+import { useCase, useEvidence, useFindings, useGraph, useSuggestions } from '@/api/queries';
 import { useSelectedCase } from '@/app/CaseContext';
 import { MetricTile } from '@/components/common/MetricTile';
 import { NoCaseSelected } from '@/components/common/NoCaseSelected';
 import { PageHeader } from '@/components/common/PageHeader';
 import { QueryBoundary } from '@/components/common/QueryBoundary';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { DiamondGraph } from '@/features/diamond/DiamondGraph';
 import { ActivityFeed } from '@/features/overview/ActivityFeed';
 import { CaseHeaderCard } from '@/features/overview/CaseHeaderCard';
-import { DiamondModel } from '@/features/overview/DiamondModel';
 import { FindingsSummary } from '@/features/overview/FindingsSummary';
 import { type CaseSummaryResponse } from '@/types/api';
 
@@ -75,7 +68,6 @@ export function OverviewPage() {
   const caseQuery = useCase(caseId);
   const graphQuery = useGraph(caseId);
   const findingsQuery = useFindings(caseId);
-  const correlationsQuery = useCorrelations(caseId);
   const suggestionsQuery = useSuggestions(caseId);
   const evidenceQuery = useEvidence(caseId);
 
@@ -110,13 +102,26 @@ export function OverviewPage() {
         <Metrics data={caseQuery.data} pending={pending} />
       ) : null}
 
-      {/* Diamond model — tier-correct, full width */}
+      {/* Diamond model — the shared diamond GRAPH lens (same renderer as the Graph view's Diamond
+          layout), tier-correct, full width. A graph needs vertical room, so it gets a tall panel. */}
       <div className="mb-5">
-        <DiamondModel
-          graph={graphQuery.data}
-          findings={findingsQuery.data}
-          correlations={correlationsQuery.data}
-        />
+        <Card className="overflow-hidden">
+          <CardHeader className="space-y-1">
+            <span className="type-label">Analytic pivot</span>
+            <CardTitle>Diamond Model</CardTitle>
+          </CardHeader>
+          <div className="p-3">
+            <QueryBoundary
+              query={graphQuery}
+              loadingMessage="Loading the Diamond Model…"
+              isEmpty={(d) => d.nodes.length === 0}
+              emptyTitle="No entities to place on the Diamond"
+              emptyMessage="This case has no high-level entities yet. When modules produce entities, they are placed on the Adversary / Capability / Infrastructure / Victim vertices here."
+            >
+              {(data) => <DiamondGraph graph={data} stageClassName="h-[58vh] min-h-[460px]" />}
+            </QueryBoundary>
+          </div>
+        </Card>
       </div>
 
       {/* Findings + activity */}

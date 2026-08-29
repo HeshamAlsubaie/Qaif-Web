@@ -15,11 +15,13 @@ import { QueryBoundary } from '@/components/common/QueryBoundary';
 import { Card } from '@/components/ui/card';
 import type { GraphResponse } from '@/types/api';
 
+import { DiamondGraph } from '@/features/diamond/DiamondGraph';
+
 import { GraphCanvas, type GraphCanvasHandle } from './GraphCanvas';
 import { GraphDetailPanel, type GraphSelection } from './GraphDetailPanel';
 import { GraphLegend } from './GraphLegend';
 import { GraphToolbar } from './GraphToolbar';
-import { type LayoutName } from './graphStyle';
+import { GRAPH_LAYOUTS, type GraphLayoutName } from './graphStyle';
 
 /** Loading skeleton — a framed placeholder, never a frozen empty canvas. */
 function GraphSkeleton() {
@@ -41,7 +43,7 @@ function GraphSkeleton() {
 }
 
 function GraphBody({ graph }: { graph: GraphResponse }) {
-  const [layout, setLayout] = React.useState<LayoutName>('cose');
+  const [layout, setLayout] = React.useState<GraphLayoutName>('cose');
   const [selection, setSelection] = React.useState<GraphSelection | null>(null);
   const canvasRef = React.useRef<GraphCanvasHandle>(null);
 
@@ -50,49 +52,71 @@ function GraphBody({ graph }: { graph: GraphResponse }) {
     canvasRef.current?.clearSelection();
   }, []);
 
+  // "Diamond" is the one layout that also sets node SCOPE: it renders the shared diamond component
+  // over the 4-vertex subset (not the full graph). Force/Hierarchy/Grid keep operating on the full
+  // graph via the GraphCanvas. The diamond self-fits and shows its own tier legend, so the canvas
+  // controls (fit/zoom/re-run) and the graph's detail panel are hidden in that mode.
+  const isDiamond = layout === 'diamond';
+
   return (
     <div className="flex flex-col gap-3">
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 p-3">
           <GraphToolbar
             layout={layout}
+            layouts={GRAPH_LAYOUTS}
             onLayoutChange={setLayout}
             onFit={() => canvasRef.current?.fit()}
             onResetZoom={() => canvasRef.current?.resetZoom()}
             onRerun={() => canvasRef.current?.runLayout()}
+            showCanvasControls={!isDiamond}
           />
           <span className="text-caption text-muted-foreground">
-            {graph.nodes.length} {graph.nodes.length === 1 ? 'entity' : 'entities'} ·{' '}
-            {graph.edges.length} {graph.edges.length === 1 ? 'relationship' : 'relationships'}
+            {isDiamond ? (
+              'Diamond lens — the 4-vertex intrusion subset of this graph'
+            ) : (
+              <>
+                {graph.nodes.length} {graph.nodes.length === 1 ? 'entity' : 'entities'} ·{' '}
+                {graph.edges.length} {graph.edges.length === 1 ? 'relationship' : 'relationships'}
+              </>
+            )}
           </span>
         </div>
 
-        {/* The canvas stage. Legend overlays bottom-left; the detail panel slides in from the right. */}
-        <div className="console-grid relative h-[68vh] min-h-[520px] w-full bg-surface-0">
-          <GraphCanvas
-            ref={canvasRef}
-            graph={graph}
-            layout={layout}
-            onSelectNode={(node) => setSelection({ kind: 'node', node })}
-            onSelectEdge={(edge) => setSelection({ kind: 'edge', edge })}
-            onSelectNone={() => setSelection(null)}
-          />
-
-          <div className="absolute bottom-4 left-4 z-10">
-            <GraphLegend />
+        {layout === 'diamond' ? (
+          <div className="p-3">
+            <DiamondGraph graph={graph} stageClassName="h-[64vh] min-h-[520px]" />
           </div>
+        ) : (
+          /* The canvas stage. Legend overlays bottom-left; the detail panel slides in from the right. */
+          <div className="console-grid relative h-[68vh] min-h-[520px] w-full bg-surface-0">
+            <GraphCanvas
+              ref={canvasRef}
+              graph={graph}
+              layout={layout}
+              onSelectNode={(node) => setSelection({ kind: 'node', node })}
+              onSelectEdge={(edge) => setSelection({ kind: 'edge', edge })}
+              onSelectNone={() => setSelection(null)}
+            />
 
-          {selection && (
-            <GraphDetailPanel selection={selection} graph={graph} onClose={closePanel} />
-          )}
-        </div>
+            <div className="absolute bottom-4 left-4 z-10">
+              <GraphLegend />
+            </div>
+
+            {selection && (
+              <GraphDetailPanel selection={selection} graph={graph} onClose={closePanel} />
+            )}
+          </div>
+        )}
       </Card>
 
-      <p className="px-1 text-micro text-muted-foreground">
-        Tier is carried by the element itself — solid cyan (confirmed) vs dashed amber
-        (probabilistic) — not by a label, so an inferred link can never be mistaken for a confirmed
-        one. Click any node or edge for its real record. Nothing here is fabricated.
-      </p>
+      {!isDiamond && (
+        <p className="px-1 text-micro text-muted-foreground">
+          Tier is carried by the element itself — solid cyan (confirmed) vs dashed amber
+          (probabilistic) — not by a label, so an inferred link can never be mistaken for a confirmed
+          one. Click any node or edge for its real record. Nothing here is fabricated.
+        </p>
+      )}
     </div>
   );
 }
