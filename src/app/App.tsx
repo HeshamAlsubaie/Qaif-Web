@@ -1,4 +1,4 @@
-import { BellRing, UploadCloud } from 'lucide-react';
+import { UploadCloud } from 'lucide-react';
 import { type ReactElement } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
@@ -14,6 +14,8 @@ import { LandingPage } from '@/features/landing/LandingPage';
 import { OpenCasePage } from '@/features/landing/OpenCasePage';
 import { ToolPlaceholder } from '@/features/landing/ToolPlaceholder';
 import { ToolShell } from '@/features/landing/ToolShell';
+import { AlertActionPage } from '@/features/wazuh/AlertActionPage';
+import { WazuhAlertsPage } from '@/features/wazuh/WazuhAlertsPage';
 import { OverviewPage } from '@/features/overview/OverviewPage';
 import { StageCPage } from '@/features/placeholder/StageCPage';
 import { ReportPage } from '@/features/report/ReportPage';
@@ -50,15 +52,20 @@ const router = createBrowserRouter([
   // Free-search TOOLS reachable from the landing — bare (ToolShell), NO console sidebar, because
   // they are case-INDEPENDENT. Stage 2/3 build their guts; for now each is honest, never faked.
   {
+    // The Wazuh SIEM feed — read-only signal source, bare (no case sidebar), case-INDEPENDENT.
     path: 'alerts',
     element: (
       <ToolShell>
-        <ToolPlaceholder
-          kicker="Free search"
-          title="Wazuh Alerts"
-          icon={BellRing}
-          message="Live SIEM alerts read from the Wazuh indexer will render here — a read-only feed that launches investigations. Nothing is faked in the meantime."
-        />
+        <WazuhAlertsPage />
+      </ToolShell>
+    ),
+  },
+  {
+    // Alert action page: click a feed row → decide what to do (search / open a case).
+    path: 'alerts/:id',
+    element: (
+      <ToolShell>
+        <AlertActionPage />
       </ToolShell>
     ),
   },

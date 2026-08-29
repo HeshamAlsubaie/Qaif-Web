@@ -1,11 +1,14 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus, X } from 'lucide-react';
+import * as React from 'react';
 
 import { useEvidence } from '@/api/queries';
 import { CaseScoped } from '@/components/common/CaseScoped';
 import { QueryBoundary } from '@/components/common/QueryBoundary';
 import { IntegrityBadge } from '@/components/forensic/IntegrityBadge';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { AddFindingPanel } from '@/features/evidence/AddFindingPanel';
 import { formatBytes, formatUtc, titleCase } from '@/lib/format';
 import { type CustodyEntryResponse, type EvidenceItemResponse } from '@/types/api';
 
@@ -122,8 +125,45 @@ export function EvidencePage() {
       title="Evidence"
       sub="Manifest with SHA-256 (R2) and chain of custody (R3)."
     >
-      {(caseId) => <EvidenceQuery caseId={caseId} />}
+      {(caseId) => <EvidenceView caseId={caseId} />}
     </CaseScoped>
+  );
+}
+
+/**
+ * The case's evidence view: the "add a finding" collect surface on top of the read-only manifest.
+ * Adding is the deliberate in-case write (Investigator-only); the manifest below refetches on a
+ * successful add, so a newly-sealed intel-snapshot appears in custody immediately.
+ */
+function EvidenceView({ caseId }: { caseId: number }) {
+  const [adding, setAdding] = React.useState(false);
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="type-caption">
+          Add a finding to collect an external claim into this case under custody.
+        </span>
+        <Button
+          size="sm"
+          variant={adding ? 'outline' : 'default'}
+          onClick={() => setAdding((v) => !v)}
+        >
+          {adding ? (
+            <>
+              <X aria-hidden />
+              Close
+            </>
+          ) : (
+            <>
+              <Plus aria-hidden />
+              Add finding
+            </>
+          )}
+        </Button>
+      </div>
+      {adding && <AddFindingPanel caseId={caseId} />}
+      <EvidenceQuery caseId={caseId} />
+    </div>
   );
 }
 

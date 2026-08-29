@@ -1,4 +1,5 @@
 import { CircleAlert, CircleCheck, CircleSlash, type LucideIcon } from 'lucide-react';
+import { type ReactNode } from 'react';
 
 import { ExternalClaimBadge } from '@/components/forensic/ExternalClaimBadge';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +67,18 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-export function SourceResultCard({ result }: { result: LookupSourceResult }) {
+/**
+ * `action` is an optional footer slot: when a caller renders these cards to COLLECT (add-to-case),
+ * it injects the "Add to this case" control here. The default (search/landing) passes nothing, so
+ * the card stays a pure read-only claim view — looking, not collecting.
+ */
+export function SourceResultCard({
+  result,
+  action,
+}: {
+  result: LookupSourceResult;
+  action?: ReactNode;
+}) {
   const { source, family, queried_value, status, timestamp, resolved_from, payload, error } =
     result;
 
@@ -121,6 +133,8 @@ export function SourceResultCard({ result }: { result: LookupSourceResult }) {
         ) : (
           <span className="type-caption italic">No structured payload was returned.</span>
         )}
+
+        {action && <div className="mt-4 border-t border-border pt-3">{action}</div>}
       </CardContent>
     </Card>
   );

@@ -1,12 +1,14 @@
 /**
- * Typed endpoint functions for the QAIF backend — one per read resource plus the single write.
+ * Typed endpoint functions for the QAIF backend — one per read resource plus the audited writes.
  *
- * SCAFFOLD ONLY in stage A: these are defined and type-checked but not invoked anywhere yet. Each
- * binds a path to its Zod schema, so a caller in a later stage gets a fully typed, boundary-
- * validated result for free. The one write (review) mirrors the backend's only state-changing route.
+ * Each binds a path to its Zod schema, so a caller gets a fully typed, boundary-validated result for
+ * free. The writes (review, openCase, addToCase) mirror the backend's state-changing routes; each
+ * carries the Investigator IAM headers, since the backend fail-closes to a read-only Viewer without.
  */
 import { apiRequest } from '@/api/client';
+import { investigatorHeaders } from '@/api/identity';
 import {
+  addToCaseResponseSchema,
   caseSummaryResponseSchema,
   correlationsResponseSchema,
   cryptoTraceResponseSchema,
@@ -16,13 +18,17 @@ import {
   healthResponseSchema,
   lookupResponseSchema,
   matchResponseSchema,
+  openCaseResponseSchema,
   reportResponseSchema,
   reviewResponseSchema,
   searchResponseSchema,
   suggestionsResponseSchema,
   timelineResponseSchema,
+  wazuhAlertsResponseSchema,
 } from '@/types/schemas';
 import type {
+  AddToCaseRequest,
+  AddToCaseResponse,
   CaseSummaryResponse,
   CorrelationsResponse,
   CryptoTraceResponse,
@@ -32,12 +38,15 @@ import type {
   HealthResponse,
   LookupResponse,
   MatchResponse,
+  OpenCaseRequest,
+  OpenCaseResponse,
   ReportResponse,
   ReviewRequest,
   ReviewResponse,
   SearchResponse,
   SuggestionsResponse,
   TimelineResponse,
+  WazuhAlertsResponse,
 } from '@/types/api';
 
 export function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
@@ -138,7 +147,66 @@ export function matchIndicator(indicator: string, signal?: AbortSignal): Promise
   });
 }
 
-/** The one state-changing call: record a human's approve/reject decision on a suggestion (R6). */
+/** Optional filters for the Wazuh feed — all narrow the read; none are required. */
+export interface WazuhAlertsParams {
+  limit?: number;
+  minLevel?: number;
+  agent?: string;
+  since?: string;
+  until?: string;
+}
+
+/**
+ * The READ-ONLY Wazuh SIEM alert feed (newest first). Wazuh is a signal SOURCE only: QAIF reads FROM
+ * the Indexer and never writes to it, so despite launching investigations this is a pure read (like
+ * `/lookup`) — no case, no custody. A `dormant`/`unavailable` source returns a clean, EMPTY list
+ * (HTTP 200), so the caller shows an honest "source unavailable" state rather than treating it as an
+ * error. Every alert carries R8 timestamps (UTC + original offset) and any extracted indicators.
+ */
+export function getWazuhAlerts(
+  params: WazuhAlertsParams = {},
+  signal?: AbortSignal,
+): Promise<WazuhAlertsResponse> {
+  const sp = new URLSearchParams();
+  if (params.limit !== undefined) sp.set('limit', String(params.limit));
+  if (params.minLevel !== undefined) sp.set('min_level', String(params.minLevel));
+  if (params.agent) sp.set('agent', params.agent);
+  if (params.since) sp.set('since', params.since);
+  if (params.until) sp.set('until', params.until);
+  const qs = sp.toString();
+  return apiRequest(`/wazuh/alerts${qs ? `?${qs}` : ''}`, wazuhAlertsResponseSchema, {
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * Open a new, empty attributed case — the deliberate custody boundary (audited, Investigator-only).
+ * `reason` is MANDATORY (R10); the backend 422s on a blank one and 403s without the Investigator
+ * role. The role/actor stand-ins ride the IAM headers ({@link investigatorHeaders}); custody begins
+ * with the genesis entry in the response.
+ */
+export function openCase(body: OpenCaseRequest): Promise<OpenCaseResponse> {
+  return apiRequest('/cases', openCaseResponseSchema, {
+    method: 'POST',
+    body,
+    headers: investigatorHeaders(),
+  });
+}
+
+/**
+ * Add ONE looked-up finding to an existing case — "adding = collecting". The single `lookup_result`
+ * is sealed as intel-snapshot evidence (PROBABILISTIC, R4) under ONE ACQUIRED custody event (R3).
+ * Investigator-only (403 for Viewer); 404 if the case does not exist. Idempotent by (case, sha256).
+ */
+export function addToCase(caseId: number, body: AddToCaseRequest): Promise<AddToCaseResponse> {
+  return apiRequest(`/cases/${caseId}/evidence`, addToCaseResponseSchema, {
+    method: 'POST',
+    body,
+    headers: investigatorHeaders(),
+  });
+}
+
+/** Record a human's approve/reject decision on a suggestion (R6). */
 export function reviewSuggestion(
   caseId: number,
   suggestionId: number,

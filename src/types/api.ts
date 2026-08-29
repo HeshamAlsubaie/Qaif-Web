@@ -31,6 +31,13 @@ import type {
   healthResponseSchema,
   lookupResponseSchema,
   lookupSourceResultSchema,
+  addToCaseResponseSchema,
+  openCaseResponseSchema,
+  wazuhAlertSchema,
+  wazuhAlertsResponseSchema,
+  wazuhIndicatorSchema,
+  wazuhRuleSchema,
+  wazuhAgentSchema,
   matchEntityHitSchema,
   matchResponseSchema,
   reportResponseSchema,
@@ -85,6 +92,37 @@ export type ReportResponse = z.infer<typeof reportResponseSchema>;
 
 export type LookupSourceResult = z.infer<typeof lookupSourceResultSchema>;
 export type LookupResponse = z.infer<typeof lookupResponseSchema>;
+
+// -- the two audited case writes (Investigator-only; role/actor via headers) --
+
+export type OpenCaseResponse = z.infer<typeof openCaseResponseSchema>;
+export type AddToCaseResponse = z.infer<typeof addToCaseResponseSchema>;
+
+// -- Wazuh SIEM alert feed (read-only signal source) -------------------------
+
+export type WazuhRule = z.infer<typeof wazuhRuleSchema>;
+export type WazuhAgent = z.infer<typeof wazuhAgentSchema>;
+export type WazuhIndicator = z.infer<typeof wazuhIndicatorSchema>;
+export type WazuhAlert = z.infer<typeof wazuhAlertSchema>;
+export type WazuhAlertsResponse = z.infer<typeof wazuhAlertsResponseSchema>;
+
+/** Body of `POST /cases`. `reason` is MANDATORY (R10) — the backend 422s on a blank one. */
+export interface OpenCaseRequest {
+  title: string;
+  reason: string;
+}
+
+/**
+ * Body of `POST /cases/{id}/evidence` — ONE looked-up finding to seal. `lookup_result` is a single
+ * source's result from `POST /lookup`; `lookup_performed_at` is when that lookup was retrieved
+ * (provenance). One finding per call = one ACQUIRED custody event.
+ */
+export interface AddToCaseRequest {
+  indicator: string;
+  detected_type: string;
+  lookup_result: LookupSourceResult;
+  lookup_performed_at: string;
+}
 
 export type MatchEntityHit = z.infer<typeof matchEntityHitSchema>;
 export type MatchResponse = z.infer<typeof matchResponseSchema>;

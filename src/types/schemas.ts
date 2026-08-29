@@ -233,6 +233,112 @@ export const reviewResponseSchema = z.object({
   audit_recorded: z.boolean(),
 });
 
+// -- open a case (audited write; POST /cases) -------------------------------
+
+/**
+ * The GENESIS custody entry returned by `POST /cases` — a case's first, hash-linked custody event,
+ * recorded who/when/why BEFORE any evidence exists (so there is no `evidence_id`). Opening a case is
+ * an audited, Investigator-only write; this entry is the custody boundary the response confirms.
+ */
+export const openCaseCustodyOriginSchema = z.object({
+  custody_entry_id: z.number().int(),
+  action: z.string(),
+  actor: z.string(),
+  recorded_at: z.string(),
+  details: z.string().nullable(),
+  prev_hash: z.string(),
+  entry_hash: z.string(),
+});
+
+export const openCaseResponseSchema = z.object({
+  case_id: z.number().int(),
+  title: z.string(),
+  opened_by: z.string(),
+  opened_at: z.string(),
+  reason: z.string(),
+  custody_origin: openCaseCustodyOriginSchema,
+});
+
+// -- add a finding to a case (audited write; POST /cases/{id}/evidence) ------
+
+/**
+ * The single ACQUIRED custody event that "adding = collecting" writes: one looked-up finding sealed
+ * as intel-snapshot evidence under the case's chain (R3). Returned with its hash so the caller can
+ * confirm the finding is now sealed. Unlike the genesis above, an add carries no `details` field.
+ */
+export const addToCaseCustodyEntrySchema = z.object({
+  custody_entry_id: z.number().int(),
+  action: z.string(),
+  actor: z.string(),
+  recorded_at: z.string(),
+  prev_hash: z.string(),
+  entry_hash: z.string(),
+});
+
+/**
+ * The result of adding ONE finding: the sealed intel-snapshot evidence + its ACQUIRED custody event,
+ * plus the probabilistic entity and finding(s). Everything sealed is PROBABILISTIC (R4) — a claim
+ * record, never confirmed by the act of collecting. `sha256` is the seal over the snapshot (R2).
+ */
+export const addToCaseResponseSchema = z.object({
+  case_id: z.number().int(),
+  evidence_id: z.number().int(),
+  entity_id: z.number().int(),
+  sha256: z.string(),
+  finding_ids: z.array(z.number().int()),
+  custody_entry: addToCaseCustodyEntrySchema,
+});
+
+// -- Wazuh SIEM alert feed (READ-ONLY; GET /wazuh/alerts) -------------------
+
+/**
+ * The recent-alerts feed from `GET /wazuh/alerts`. A Wazuh alert is a SIGNAL that LAUNCHES
+ * investigation — it is NOT QAIF evidence and NOT under chain of custody. QAIF only READS from the
+ * Wazuh Indexer; it never writes back.
+ *
+ * R8 is preserved at the boundary: `normalized_utc` is the UTC instant (trailing `Z`) and
+ * `original_timestamp` keeps the alert's original offset verbatim — both nullable, since a raw alert
+ * may lack a parseable time. `status` is a closed enum: a `dormant` (source unconfigured) or
+ * `unavailable` (Indexer unreachable) feed still validates — it arrives as a clean, EMPTY list, so
+ * the UI shows an honest "source unavailable" state rather than crashing or faking alerts.
+ */
+export const wazuhRuleSchema = z.object({
+  id: z.string(),
+  level: z.number().int().nullable(),
+  description: z.string(),
+  groups: z.array(z.string()),
+});
+
+export const wazuhAgentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+/** An indicator `detect.py` extracted from the alert — normalized like search/match, ready to hand off. */
+export const wazuhIndicatorSchema = z.object({
+  value: z.string(),
+  type: z.string(),
+});
+
+export const wazuhAlertSchema = z.object({
+  id: z.string(),
+  index: z.string().nullable(),
+  rule: wazuhRuleSchema,
+  agent: wazuhAgentSchema,
+  full_log: z.string(),
+  normalized_utc: z.string().nullable(),
+  original_timestamp: z.string().nullable(),
+  extracted_indicators: z.array(wazuhIndicatorSchema),
+});
+
+export const wazuhAlertsResponseSchema = z.object({
+  status: z.enum(['ok', 'dormant', 'unavailable']),
+  configured: z.boolean(),
+  count: z.number().int(),
+  detail: z.string().nullable(),
+  alerts: z.array(wazuhAlertSchema),
+});
+
 // -- IOC lookup (case-independent external intelligence; POST /lookup) -------
 
 /**

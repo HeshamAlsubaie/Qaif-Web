@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type UseQueryResult } from '@tanstack/react-query';
 
 import {
+  addToCase,
   getCase,
   getCorrelations,
   getCryptoTrace,
@@ -20,12 +21,17 @@ import {
   getReport,
   getSuggestions,
   getTimeline,
+  getWazuhAlerts,
   lookupIndicator,
   matchIndicator,
+  openCase,
   reviewSuggestion,
   searchCases,
+  type WazuhAlertsParams,
 } from '@/api/endpoints';
 import {
+  type AddToCaseRequest,
+  type AddToCaseResponse,
   type CaseSummaryResponse,
   type CorrelationsResponse,
   type CryptoTraceResponse,
@@ -35,12 +41,15 @@ import {
   type HealthResponse,
   type LookupResponse,
   type MatchResponse,
+  type OpenCaseRequest,
+  type OpenCaseResponse,
   type ReportResponse,
   type ReviewDecision,
   type ReviewResponse,
   type SearchResponse,
   type SuggestionsResponse,
   type TimelineResponse,
+  type WazuhAlertsResponse,
 } from '@/types/api';
 
 export const queryKeys = {
@@ -66,6 +75,24 @@ export function useHealth(): UseQueryResult<HealthResponse> {
     retry: false,
     staleTime: 5_000,
     gcTime: 60_000,
+  });
+}
+
+/**
+ * The READ-ONLY Wazuh SIEM alert feed. A case-INDEPENDENT read (no selected case needed), so it is
+ * always enabled. Polls every 30s for a live feed and does not retry-storm; a `dormant`/`unavailable`
+ * source is a normal 200 with an empty list, NOT a query error, so the view distinguishes "source
+ * off" (clean state) from a genuine transport failure. The filter params are part of the query key,
+ * so changing a filter refetches under its own cache entry.
+ */
+export function useWazuhAlerts(params: WazuhAlertsParams = {}): UseQueryResult<WazuhAlertsResponse> {
+  return useQuery({
+    queryKey: ['wazuh', 'alerts', params],
+    queryFn: ({ signal }) => getWazuhAlerts(params, signal),
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    retry: false,
+    staleTime: 10_000,
   });
 }
 
@@ -187,6 +214,36 @@ export function useCaseSearch() {
 export function useIndicatorMatch() {
   return useMutation<MatchResponse, Error, string>({
     mutationFn: (indicator) => matchIndicator(indicator),
+  });
+}
+
+/**
+ * Open a case — the audited, Investigator-only write. A user-triggered mutation (fired on submit).
+ * It creates a brand-new case, so there is no existing case query to invalidate here; the caller
+ * selects the returned case and navigates into it. Errors (403 Viewer, 422 blank reason) surface to
+ * the view honestly via the typed `Error`.
+ */
+export function useOpenCase() {
+  return useMutation<OpenCaseResponse, Error, OpenCaseRequest>({
+    mutationFn: (body) => openCase(body),
+  });
+}
+
+/**
+ * Add ONE looked-up finding to the selected case — the in-case "collecting" write. On success we
+ * invalidate this case's evidence (so the newly-sealed intel-snapshot appears in the manifest
+ * immediately) and its header counts. Investigator-only; 404 if the case vanished. The typed,
+ * boundary-validated response carries the ACQUIRED custody entry the view then shows.
+ */
+export function useAddToCase(caseId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation<AddToCaseResponse, Error, AddToCaseRequest>({
+    mutationFn: (body) => addToCase(caseId as number, body),
+    onSuccess: () => {
+      if (caseId === null) return;
+      void queryClient.invalidateQueries({ queryKey: queryKeys.evidence(caseId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.case(caseId) });
+    },
   });
 }
 

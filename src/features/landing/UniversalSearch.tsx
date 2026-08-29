@@ -1,5 +1,6 @@
 import { Loader2, Search } from 'lucide-react';
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { useIndicatorMatch, useIocLookup } from '@/api/queries';
 import { LoadingState } from '@/components/common/States';
@@ -26,15 +27,36 @@ export function UniversalSearch() {
   const lookup = useIocLookup();
   const match = useIndicatorMatch();
 
+  const runSearch = React.useCallback(
+    (query: string) => {
+      setMatchDismissed(false);
+      lookup.mutate(query);
+      // The match check runs alongside the lookup; a failure here must never block the lookup, so it
+      // is a separate mutation whose error simply hides the banner (no match shown), never surfaced.
+      match.mutate(query);
+    },
+    [lookup, match],
+  );
+
+  // A pre-filled query carried in via router state — e.g. from a Wazuh alert's "search this
+  // indicator" launch. Run it once on arrival so the investigator lands on the results directly.
+  const location = useLocation();
+  const prefill = (location.state as { prefill?: string } | null)?.prefill;
+  const ranPrefill = React.useRef(false);
+  React.useEffect(() => {
+    if (!prefill || ranPrefill.current) return;
+    const query = prefill.trim();
+    if (!query) return;
+    ranPrefill.current = true;
+    setValue(query);
+    runSearch(query);
+  }, [prefill, runSearch]);
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     const query = value.trim();
     if (!query || lookup.isPending) return;
-    setMatchDismissed(false);
-    lookup.mutate(query);
-    // The match check runs alongside the lookup; a failure here must never block the lookup, so it
-    // is a separate mutation whose error simply hides the banner (no match shown), never surfaced.
-    match.mutate(query);
+    runSearch(query);
   };
 
   const showMatch =

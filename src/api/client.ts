@@ -35,6 +35,11 @@ export interface RequestOptions {
   method?: 'GET' | 'POST';
   body?: unknown;
   signal?: AbortSignal;
+  /**
+   * Extra request headers, merged AFTER Accept/Content-Type so a caller can add the IAM stand-in
+   * headers the write routes read (`x-qaif-role`, `x-qaif-actor`). Reads never pass these.
+   */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -55,6 +60,10 @@ export async function apiRequest<T>(
   if (options.body !== undefined) {
     init.headers = { ...init.headers, 'Content-Type': 'application/json' };
     init.body = JSON.stringify(options.body);
+  }
+  if (options.headers) {
+    // Caller-supplied headers win, so the write routes' role/actor stand-ins are always applied.
+    init.headers = { ...init.headers, ...options.headers };
   }
 
   let response: Response;

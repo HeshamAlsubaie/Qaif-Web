@@ -1,4 +1,5 @@
 import { CircleSlash, Globe, Info } from 'lucide-react';
+import { type ReactNode } from 'react';
 
 import { CveDashboard } from '@/features/cve/CveDashboard';
 import { EmptyState, ErrorState } from '@/components/common/States';
@@ -6,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { describeApiError } from '@/lib/apiError';
 import { titleCase } from '@/lib/format';
-import type { LookupResponse } from '@/types/api';
+import type { LookupResponse, LookupSourceResult } from '@/types/api';
 
 import { SourceResultCard } from './SourceResultCard';
 
@@ -75,7 +76,20 @@ export function ExternalIntelNotice() {
   );
 }
 
-export function IocResults({ data }: { data: LookupResponse }) {
+/**
+ * `renderAddAction` turns this read-only claim view into the "collect" surface: when provided, each
+ * per-source card gets an "Add to this case" control (see the case evidence view). The default
+ * (search/landing) omits it, so nothing is addable — looking, never collecting. When present, a CVE
+ * lookup renders per-source cards (each addable) instead of the CVE dashboard, which has no per-
+ * source add hooks; every source result stays individually collectable.
+ */
+export function IocResults({
+  data,
+  renderAddAction,
+}: {
+  data: LookupResponse;
+  renderAddAction?: (result: LookupSourceResult) => ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -97,9 +111,10 @@ export function IocResults({ data }: { data: LookupResponse }) {
       ) : (
         <>
           <ExternalIntelNotice />
-          {data.detected_type === 'cve' ? (
+          {data.detected_type === 'cve' && !renderAddAction ? (
             // A CVE renders the rich, VirusTotal-style dashboard instead of the generic per-source
-            // cards — same lookup payload, same external-claim discipline, richer presentation.
+            // cards — same lookup payload, same external-claim discipline, richer presentation. When
+            // collecting (renderAddAction present) we fall to the per-source cards so each is addable.
             <CveDashboard data={data} />
           ) : data.results.length === 0 ? (
             <Card>
@@ -112,7 +127,11 @@ export function IocResults({ data }: { data: LookupResponse }) {
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               {data.results.map((result) => (
-                <SourceResultCard key={`${result.source}:${result.queried_value}`} result={result} />
+                <SourceResultCard
+                  key={`${result.source}:${result.queried_value}`}
+                  result={result}
+                  action={renderAddAction?.(result)}
+                />
               ))}
             </div>
           )}
