@@ -12,6 +12,7 @@ import { type UseQueryResult } from '@tanstack/react-query';
 import {
   getCase,
   getCorrelations,
+  getCryptoTrace,
   getEvidence,
   getFindings,
   getGraph,
@@ -26,6 +27,7 @@ import {
 import {
   type CaseSummaryResponse,
   type CorrelationsResponse,
+  type CryptoTraceResponse,
   type EvidenceResponse,
   type FindingsResponse,
   type GraphResponse,
@@ -47,6 +49,7 @@ export const queryKeys = {
   evidence: (caseId: number) => ['case', caseId, 'evidence'] as const,
   findings: (caseId: number) => ['case', caseId, 'findings'] as const,
   correlations: (caseId: number) => ['case', caseId, 'correlations'] as const,
+  crypto: (caseId: number) => ['case', caseId, 'crypto'] as const,
   suggestions: (caseId: number) => ['case', caseId, 'suggestions'] as const,
   report: (caseId: number) => ['case', caseId, 'report'] as const,
 };
@@ -108,6 +111,19 @@ export function useCorrelations(caseId: number | null): UseQueryResult<Correlati
   return useQuery({
     queryKey: caseId !== null ? queryKeys.correlations(caseId) : ['correlations', 'none'],
     queryFn: ({ signal }) => getCorrelations(caseId as number, signal),
+    enabled: caseId !== null,
+  });
+}
+
+/**
+ * The case's stored crypto funds-flow trace. Enabled only with a selected case, like every other
+ * case read. The whole payload is probabilistic (R4) and validated at the boundary before a view
+ * sees it; an absent trace arrives as a clean `present:false` structure, not an error.
+ */
+export function useCryptoTrace(caseId: number | null): UseQueryResult<CryptoTraceResponse> {
+  return useQuery({
+    queryKey: caseId !== null ? queryKeys.crypto(caseId) : ['crypto', 'none'],
+    queryFn: ({ signal }) => getCryptoTrace(caseId as number, signal),
     enabled: caseId !== null,
   });
 }

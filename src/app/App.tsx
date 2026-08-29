@@ -4,6 +4,7 @@ import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { CaseProvider } from '@/app/CaseContext';
 import { AppShell } from '@/components/shell/AppShell';
 import { NAV_SECTIONS } from '@/components/shell/navConfig';
+import { CryptoPage } from '@/features/crypto/CryptoPage';
 import { DesignSystemPage } from '@/features/design-system/DesignSystemPage';
 import { EvidencePage } from '@/features/evidence/EvidencePage';
 import { GraphPage } from '@/features/graph/GraphPage';
@@ -22,6 +23,7 @@ const PAGES: Record<string, ReactElement> = {
   '/search': <SearchPage />,
   '/threats': <ThreatsPage />,
   '/ips': <IpsPage />,
+  '/crypto': <CryptoPage />,
   '/graph': <GraphPage />,
   '/timeline': <TimelinePage />,
   '/evidence': <EvidencePage />,

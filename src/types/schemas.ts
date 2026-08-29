@@ -357,6 +357,93 @@ export const searchResponseSchema = z.object({
   truncated: z.record(z.string(), z.boolean()),
 });
 
+// -- crypto funds-flow trace (case read; always probabilistic — R4) ---------
+
+/**
+ * A stored crypto funds-flow trace, shaped for a LEGIBLE view of a DENSE trace (hundreds of nodes).
+ *
+ * The forensic invariant is ENFORCED here, not merely typed: the WHOLE payload is probabilistic — a
+ * funds-flow trace is an INDICATOR, never confirmed evidence and never a determination that an
+ * address belongs to a person or service (R4). So the envelope `tier` and both the origin's and the
+ * findings' `tier` are pinned to the `probabilistic` literal: a trace claiming to be `confirmed`
+ * fails validation at the boundary. Per-wallet / per-transaction `tier` stays the open two-value
+ * enum only because confidence decays with hop distance and the backend may tier a hop accordingly.
+ * `present:false` is a case with no stored trace — a clean empty structure, never an error.
+ */
+export const cryptoOriginSchema = z.object({
+  entity_id: z.number().int(),
+  value: z.string(),
+  normalized_value: z.string(),
+  chain: z.string().nullable(),
+  tier: z.literal('probabilistic'),
+  confidence: z.number().nullable(),
+  // The OFAC/sanction provenance and the crypto-reference evidence the FUNDED edges cite (R2/R9).
+  sanction_provenance: z.string().nullable(),
+  reference_evidence_id: z.number().int().nullable(),
+});
+
+export const cryptoWalletSchema = z.object({
+  entity_id: z.number().int(),
+  value: z.string(),
+  normalized_value: z.string(),
+  chain: z.string().nullable(),
+  hop: z.number().int(), // distance from origin; confidence decays as this grows
+  tier: tierSchema,
+  confidence: z.number().nullable(),
+});
+
+export const cryptoTransactionSchema = z.object({
+  entity_id: z.number().int(),
+  txid: z.string(),
+  chain: z.string().nullable(),
+  amount: z.string().nullable(), // decimal string in the asset's units — kept exact, never a float
+  hop: z.number().int(),
+  source_addresses: z.array(z.string()),
+  target_addresses: z.array(z.string()),
+  // R8: the UTC instant and its original-tz companion travel together.
+  timestamp: z.string(),
+  original_tz: z.string(),
+  tier: tierSchema,
+  confidence: z.number().nullable(),
+});
+
+export const cryptoTraceFindingSchema = z.object({
+  finding_id: z.number().int(),
+  module_id: z.string(),
+  severity: z.string(),
+  title: z.string(),
+  description: z.string(),
+  tier: z.literal('probabilistic'),
+  confidence: z.number().nullable(),
+  method_description: z.string().nullable(),
+  limitations: z.string().nullable(),
+  // R8: observed_at + its original-tz companion.
+  observed_at: z.string(),
+  observed_at_original_tz: z.string(),
+  // The honest "fan-out was capped here" disclosures, so the view can count and surface them.
+  truncation: z.boolean(),
+});
+
+export const cryptoTraceSummarySchema = z.object({
+  total_wallets: z.number().int(),
+  total_transactions: z.number().int(),
+  total_funded_edges: z.number().int(),
+  max_hop: z.number().int(),
+  truncation_findings: z.number().int(),
+  finding_count: z.number().int(),
+});
+
+export const cryptoTraceResponseSchema = z.object({
+  case_id: z.number().int(),
+  present: z.boolean(),
+  tier: z.literal('probabilistic'),
+  origin: cryptoOriginSchema.nullable(),
+  summary: cryptoTraceSummarySchema,
+  wallets: z.array(cryptoWalletSchema),
+  transactions: z.array(cryptoTransactionSchema),
+  findings: z.array(cryptoTraceFindingSchema),
+});
+
 // -- report (canonical 6.1 record) ------------------------------------------
 
 /**

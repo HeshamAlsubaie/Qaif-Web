@@ -9,6 +9,7 @@ import { apiRequest } from '@/api/client';
 import {
   caseSummaryResponseSchema,
   correlationsResponseSchema,
+  cryptoTraceResponseSchema,
   evidenceResponseSchema,
   findingsResponseSchema,
   graphResponseSchema,
@@ -23,6 +24,7 @@ import {
 import type {
   CaseSummaryResponse,
   CorrelationsResponse,
+  CryptoTraceResponse,
   EvidenceResponse,
   FindingsResponse,
   GraphResponse,
@@ -65,6 +67,18 @@ export function getCorrelations(
   signal?: AbortSignal,
 ): Promise<CorrelationsResponse> {
   return apiRequest(`/cases/${caseId}/correlations`, correlationsResponseSchema, { signal });
+}
+
+/**
+ * The case's stored crypto funds-flow trace (a SELECT-only read). The whole payload is
+ * probabilistic (R4) — a trace is an indicator, never confirmed evidence — and an absent trace
+ * comes back as a clean `present:false` structure rather than an error.
+ */
+export function getCryptoTrace(
+  caseId: number,
+  signal?: AbortSignal,
+): Promise<CryptoTraceResponse> {
+  return apiRequest(`/cases/${caseId}/crypto`, cryptoTraceResponseSchema, { signal });
 }
 
 export function getSuggestions(caseId: number, signal?: AbortSignal): Promise<SuggestionsResponse> {

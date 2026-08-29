@@ -11,6 +11,12 @@ import type {
   caseSummaryResponseSchema,
   correlationResponseSchema,
   correlationsResponseSchema,
+  cryptoOriginSchema,
+  cryptoTraceFindingSchema,
+  cryptoTraceResponseSchema,
+  cryptoTraceSummarySchema,
+  cryptoTransactionSchema,
+  cryptoWalletSchema,
   custodyEntryResponseSchema,
   evidenceItemResponseSchema,
   evidenceResponseSchema,
@@ -56,6 +62,13 @@ export type FindingsResponse = z.infer<typeof findingsResponseSchema>;
 
 export type CorrelationResponse = z.infer<typeof correlationResponseSchema>;
 export type CorrelationsResponse = z.infer<typeof correlationsResponseSchema>;
+
+export type CryptoOrigin = z.infer<typeof cryptoOriginSchema>;
+export type CryptoWallet = z.infer<typeof cryptoWalletSchema>;
+export type CryptoTransaction = z.infer<typeof cryptoTransactionSchema>;
+export type CryptoTraceFinding = z.infer<typeof cryptoTraceFindingSchema>;
+export type CryptoTraceSummary = z.infer<typeof cryptoTraceSummarySchema>;
+export type CryptoTraceResponse = z.infer<typeof cryptoTraceResponseSchema>;
 
 export type SuggestionResponse = z.infer<typeof suggestionResponseSchema>;
 export type SuggestionsResponse = z.infer<typeof suggestionsResponseSchema>;
