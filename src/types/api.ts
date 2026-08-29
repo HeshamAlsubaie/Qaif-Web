@@ -41,6 +41,8 @@ import type {
   matchEntityHitSchema,
   matchResponseSchema,
   reportResponseSchema,
+  sandboxSubmitResponseSchema,
+  sandboxReportResponseSchema,
   reviewRequestSchema,
   reviewResponseSchema,
   searchResponseSchema,
@@ -89,6 +91,9 @@ export type ReviewRequest = z.infer<typeof reviewRequestSchema>;
 export type ReviewResponse = z.infer<typeof reviewResponseSchema>;
 
 export type ReportResponse = z.infer<typeof reportResponseSchema>;
+
+export type SandboxSubmitResponse = z.infer<typeof sandboxSubmitResponseSchema>;
+export type SandboxReportResponse = z.infer<typeof sandboxReportResponseSchema>;
 
 export type LookupSourceResult = z.infer<typeof lookupSourceResultSchema>;
 export type LookupResponse = z.infer<typeof lookupResponseSchema>;

@@ -1,4 +1,3 @@
-import { UploadCloud } from 'lucide-react';
 import { type ReactElement } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
@@ -12,8 +11,8 @@ import { GraphPage } from '@/features/graph/GraphPage';
 import { IpsPage } from '@/features/ips/IpsPage';
 import { LandingPage } from '@/features/landing/LandingPage';
 import { OpenCasePage } from '@/features/landing/OpenCasePage';
-import { ToolPlaceholder } from '@/features/landing/ToolPlaceholder';
 import { ToolShell } from '@/features/landing/ToolShell';
+import { SandboxPage } from '@/features/sandbox/SandboxPage';
 import { AlertActionPage } from '@/features/wazuh/AlertActionPage';
 import { WazuhAlertsPage } from '@/features/wazuh/WazuhAlertsPage';
 import { OverviewPage } from '@/features/overview/OverviewPage';
@@ -70,15 +69,12 @@ const router = createBrowserRouter([
     ),
   },
   {
+    // The public "drop a file for malware analysis" sandbox — bare (no case sidebar), case-
+    // INDEPENDENT. A free public submission to Triage: no case, no custody, never evidence.
     path: 'sandbox',
     element: (
       <ToolShell>
-        <ToolPlaceholder
-          kicker="Free search"
-          title="Malware Sandbox"
-          icon={UploadCloud}
-          message="Sandbox triage — submit a file for detonation and review its behaviour. This front-end is built in Stage 2; nothing is faked in the meantime."
-        />
+        <SandboxPage />
       </ToolShell>
     ),
   },

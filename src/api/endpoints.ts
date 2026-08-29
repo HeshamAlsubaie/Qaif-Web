@@ -21,6 +21,8 @@ import {
   openCaseResponseSchema,
   reportResponseSchema,
   reviewResponseSchema,
+  sandboxReportResponseSchema,
+  sandboxSubmitResponseSchema,
   searchResponseSchema,
   suggestionsResponseSchema,
   timelineResponseSchema,
@@ -43,6 +45,8 @@ import type {
   ReportResponse,
   ReviewRequest,
   ReviewResponse,
+  SandboxReportResponse,
+  SandboxSubmitResponse,
   SearchResponse,
   SuggestionsResponse,
   TimelineResponse,
@@ -177,6 +181,43 @@ export function getWazuhAlerts(
   return apiRequest(`/wazuh/alerts${qs ? `?${qs}` : ''}`, wazuhAlertsResponseSchema, {
     ...(signal ? { signal } : {}),
   });
+}
+
+/**
+ * PUBLIC free-analysis: submit an arbitrary file to the Triage sandbox — the landing "drop a file"
+ * path. This is the ONE multipart call (field `file`), so it hands the client a `FormData` body
+ * instead of JSON; the browser sets the multipart boundary. It reaches OUTBOUND to Triage and writes
+ * NOTHING to QAIF — no case, no custody, no evidence. On success it returns a `sample_id` to poll.
+ * A refused submission is a 403, an unreachable/unconfigured sandbox a 502 — both surface honestly.
+ */
+export function submitSandboxSample(
+  file: File,
+  signal?: AbortSignal,
+): Promise<SandboxSubmitResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  return apiRequest('/sandbox/submit', sandboxSubmitResponseSchema, {
+    method: 'POST',
+    body: form,
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * Poll a public submission: the live Triage `status` and, once `reported`, the full `overview.json`
+ * report (`report` is `null` while the sample is still running). A pure read that writes nothing to
+ * QAIF; the report is PROBABILISTIC observation (R4), never confirmed evidence. An unknown sample id
+ * is a 404, an unreachable sandbox a 502 — surfaced honestly by the caller.
+ */
+export function getSandboxReport(
+  sampleId: string,
+  signal?: AbortSignal,
+): Promise<SandboxReportResponse> {
+  return apiRequest(
+    `/sandbox/report/${encodeURIComponent(sampleId)}`,
+    sandboxReportResponseSchema,
+    { ...(signal ? { signal } : {}) },
+  );
 }
 
 /**

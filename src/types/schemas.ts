@@ -647,3 +647,24 @@ export const cryptoTraceResponseSchema = z.object({
  * We validate only that it is a JSON object here; the Report view (Stage C) will narrow it.
  */
 export const reportResponseSchema = z.record(z.string(), z.unknown());
+
+// -- sandbox public free-analysis (NO case, NO custody, NOT evidence) --------
+
+/**
+ * The landing "drop a file for analysis" path. A public file goes to the Triage sandbox, OUTSIDE any
+ * case: this creates no case, no custody, and no evidence, and the resulting report is PROBABILISTIC
+ * observation (R4), never confirmed. `POST /sandbox/submit` acknowledges with a `sample_id` to poll;
+ * `GET /sandbox/report/{sample_id}` returns the live `status` and, once `reported`, the full Triage
+ * `overview.json`. The report is an opaque JSON object here (the view narrows it); it is `null` while
+ * the sample is still running.
+ */
+export const sandboxSubmitResponseSchema = z.object({
+  sample_id: z.string(),
+  status: z.string(),
+});
+
+export const sandboxReportResponseSchema = z.object({
+  sample_id: z.string(),
+  status: z.string(),
+  report: z.record(z.string(), z.unknown()).nullable(),
+});

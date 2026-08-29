@@ -58,8 +58,15 @@ export async function apiRequest<T>(
     ...(options.signal ? { signal: options.signal } : {}),
   };
   if (options.body !== undefined) {
-    init.headers = { ...init.headers, 'Content-Type': 'application/json' };
-    init.body = JSON.stringify(options.body);
+    if (options.body instanceof FormData) {
+      // Multipart submit (the sandbox drop-file path): hand the FormData straight to fetch and let
+      // the browser set `Content-Type: multipart/form-data` WITH its generated boundary. Setting the
+      // header ourselves would omit the boundary and the server could not parse the parts.
+      init.body = options.body;
+    } else {
+      init.headers = { ...init.headers, 'Content-Type': 'application/json' };
+      init.body = JSON.stringify(options.body);
+    }
   }
   if (options.headers) {
     // Caller-supplied headers win, so the write routes' role/actor stand-ins are always applied.

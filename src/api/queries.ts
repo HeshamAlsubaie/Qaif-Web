@@ -25,8 +25,10 @@ import {
   lookupIndicator,
   matchIndicator,
   openCase,
+  getSandboxReport,
   reviewSuggestion,
   searchCases,
+  submitSandboxSample,
   type WazuhAlertsParams,
 } from '@/api/endpoints';
 import {
@@ -46,6 +48,8 @@ import {
   type ReportResponse,
   type ReviewDecision,
   type ReviewResponse,
+  type SandboxReportResponse,
+  type SandboxSubmitResponse,
   type SearchResponse,
   type SuggestionsResponse,
   type TimelineResponse,
@@ -178,6 +182,55 @@ export function useReport(
     queryFn: ({ signal }) => getReport(caseId as number, signal),
     enabled: caseId !== null && (options.enabled ?? true),
     staleTime: 60_000,
+  });
+}
+
+// Public sandbox poll cadence and the statuses that END a poll. Analysis runs for minutes, so we
+// poll every 5s; we stop only when the sample is genuinely done. `reported` is done ONLY once the
+// overview is retrievable (a reported-but-null-report race keeps polling); `failed` is terminal.
+const SANDBOX_POLL_MS = 5_000;
+export const SANDBOX_REPORTED = 'reported';
+const SANDBOX_FAILED_STATUSES = new Set(['failed']);
+
+/** True when a Triage status means analysis has terminally FAILED (never a report to wait for). */
+export function isSandboxFailure(status: string): boolean {
+  return SANDBOX_FAILED_STATUSES.has(status);
+}
+
+/**
+ * Submit a file to the PUBLIC sandbox — a user-triggered mutation (fired on the "Submit for analysis"
+ * click), the same imperative shape as {@link useIocLookup}. It writes NOTHING to QAIF (no case, no
+ * custody, no evidence), so there is nothing to invalidate on success; the caller takes the returned
+ * `sample_id` and begins polling. A refused (403) or unavailable (502) submission surfaces as the
+ * typed `Error` for the view to explain honestly.
+ */
+export function useSandboxSubmit() {
+  return useMutation<SandboxSubmitResponse, Error, File>({
+    mutationFn: (file) => submitSandboxSample(file),
+  });
+}
+
+/**
+ * Poll a public submission's Triage status/report. Enabled only once a `sample_id` exists (after a
+ * successful submit). It refetches every 5s WHILE the sample is still running and stops the moment it
+ * is done — `reported` with its overview retrieved, or a terminal `failed`. The whole report is
+ * PROBABILISTIC observation (R4), validated at the boundary before the view sees it.
+ */
+export function useSandboxReport(
+  sampleId: string | null,
+): UseQueryResult<SandboxReportResponse> {
+  return useQuery({
+    queryKey: sampleId !== null ? ['sandbox', 'report', sampleId] : ['sandbox', 'report', 'none'],
+    queryFn: ({ signal }) => getSandboxReport(sampleId as string, signal),
+    enabled: sampleId !== null,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return SANDBOX_POLL_MS;
+      if (data.status === SANDBOX_REPORTED) return data.report ? false : SANDBOX_POLL_MS;
+      if (isSandboxFailure(data.status)) return false;
+      return SANDBOX_POLL_MS;
+    },
+    retry: false,
   });
 }
 
