@@ -27,7 +27,7 @@ function readToken(name: string): string {
  * Resolve a design token to a canvas-parseable `hsl()/hsla()` string. We emit the comma form
  * (`hsl(h, s, l)`) which every canvas implementation parses, rather than the space form.
  */
-function token(name: string, alpha = 1): string {
+export function token(name: string, alpha = 1): string {
   const raw = readToken(name);
   if (!raw) return alpha < 1 ? 'rgba(0,0,0,0)' : '#0b0f17';
   const [h, s, l] = raw.split(/\s+/);
