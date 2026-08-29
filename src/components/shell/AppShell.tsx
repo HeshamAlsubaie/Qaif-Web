@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 
 import { CaseSelector } from '@/components/shell/CaseSelector';
 import { HealthDot } from '@/components/shell/HealthDot';
+import { RoleSwitcher } from '@/components/shell/RoleSwitcher';
 import { SideNav } from '@/components/shell/SideNav';
 
 /**
@@ -30,6 +31,7 @@ export function AppShell() {
       <header className="flex items-center gap-4 border-b border-border bg-surface-2 px-6">
         <CaseSelector />
         <div className="flex-1" />
+        <RoleSwitcher />
         <HealthDot />
       </header>
 

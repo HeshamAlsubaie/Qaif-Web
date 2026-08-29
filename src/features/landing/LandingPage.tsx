@@ -1,9 +1,19 @@
-import { ArrowRight, BellRing, FilePlus2, FolderOpen, UploadCloud, type LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  BellRing,
+  FilePlus2,
+  FolderOpen,
+  Lock,
+  UploadCloud,
+  type LucideIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { useNavigate, type To } from 'react-router-dom';
 
 import { useSelectedCase } from '@/app/CaseContext';
+import { useRole } from '@/app/RoleContext';
 import { Button } from '@/components/ui/button';
+import { RoleSwitcher } from '@/components/shell/RoleSwitcher';
 import { cn } from '@/lib/utils';
 
 import { BrandMark } from './BrandMark';
@@ -22,6 +32,8 @@ interface ToolEntry {
   title: string;
   description: string;
   to: To;
+  /** A write launcher: gated to Investigators, so a Viewer is not led to a form they can't submit. */
+  requiresInvestigator?: boolean;
 }
 
 // Navigate-only tools. The case-ID lookup is a small inline form (below), not one of these.
@@ -37,6 +49,7 @@ const TOOLS: ToolEntry[] = [
     title: 'Open a case',
     description: 'Start a new case — custody begins here.',
     to: '/cases/new',
+    requiresInvestigator: true,
   },
   {
     icon: BellRing,
@@ -59,22 +72,43 @@ function ToolIcon({ icon: Icon }: { icon: LucideIcon }) {
 
 function ToolCard({ tool }: { tool: ToolEntry }) {
   const navigate = useNavigate();
+  const { canWrite } = useRole();
+  // A write launcher (Open a case) is gated for Viewers: don't lead them to a form they can't submit.
+  const gated = tool.requiresInvestigator === true && !canWrite;
+
   return (
     <button
       type="button"
-      onClick={() => navigate(tool.to)}
-      className={cn(toolSurface, 'hover:border-primary/40 hover:bg-surface-2')}
+      onClick={() => {
+        if (!gated) navigate(tool.to);
+      }}
+      disabled={gated}
+      aria-disabled={gated}
+      className={cn(
+        toolSurface,
+        gated
+          ? 'cursor-not-allowed opacity-70'
+          : 'hover:border-primary/40 hover:bg-surface-2',
+      )}
     >
       <ToolIcon icon={tool.icon} />
       <span className="flex flex-col gap-0.5">
         <span className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-foreground">
           {tool.title}
-          <ArrowRight
-            className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100"
-            aria-hidden
-          />
+          {!gated && (
+            <ArrowRight
+              className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100"
+              aria-hidden
+            />
+          )}
         </span>
         <span className="type-caption">{tool.description}</span>
+        {gated && (
+          <span className="mt-1 inline-flex items-center gap-1 text-micro font-medium text-muted-foreground">
+            <Lock className="size-3" aria-hidden />
+            Investigator only — switch role to open a case.
+          </span>
+        )}
       </span>
     </button>
   );
@@ -123,8 +157,9 @@ function CaseIdCard() {
 export function LandingPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center overflow-y-auto bg-surface-0 px-6 py-10">
-      <div className="flex w-full max-w-[1080px] items-center">
+      <div className="flex w-full max-w-[1080px] items-center justify-between">
         <BrandMark />
+        <RoleSwitcher />
       </div>
 
       <div className="flex w-full max-w-[1080px] flex-1 flex-col items-center pt-16">

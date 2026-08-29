@@ -1,6 +1,8 @@
 import { ArrowLeft, FilePlus2, Search, ShieldAlert } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import { useRole } from '@/app/RoleContext';
+import { InvestigatorOnly } from '@/components/common/InvestigatorOnly';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/common/States';
 import { Badge } from '@/components/ui/badge';
@@ -220,6 +222,7 @@ function SearchAction({ alert }: { alert: WazuhAlert }) {
  */
 function OpenCaseAction({ alert }: { alert: WazuhAlert }) {
   const navigate = useNavigate();
+  const { canWrite } = useRole();
 
   const title = `Wazuh alert ${alert.rule.id} on ${alert.agent.name}`;
   const reason = `Investigating Wazuh alert: ${alert.rule.description}`;
@@ -247,15 +250,16 @@ function OpenCaseAction({ alert }: { alert: WazuhAlert }) {
             <span className="text-foreground">{reason}</span>
           </span>
         </div>
-        <div>
-          <Button
-            size="sm"
-            onClick={() => navigate('/cases/new', { state: { title, reason } })}
-          >
-            <FilePlus2 aria-hidden />
-            Open a case
-          </Button>
-        </div>
+        {canWrite ? (
+          <div>
+            <Button size="sm" onClick={() => navigate('/cases/new', { state: { title, reason } })}>
+              <FilePlus2 aria-hidden />
+              Open a case
+            </Button>
+          </div>
+        ) : (
+          <InvestigatorOnly action="Opening a case for this alert" />
+        )}
       </CardContent>
     </Card>
   );

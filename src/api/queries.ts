@@ -9,6 +9,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type UseQueryResult } from '@tanstack/react-query';
 
+import { useRole } from '@/app/RoleContext';
+
 import {
   addToCase,
   getCase,
@@ -277,8 +279,9 @@ export function useIndicatorMatch() {
  * the view honestly via the typed `Error`.
  */
 export function useOpenCase() {
+  const { role } = useRole();
   return useMutation<OpenCaseResponse, Error, OpenCaseRequest>({
-    mutationFn: (body) => openCase(body),
+    mutationFn: (body) => openCase(body, role),
   });
 }
 
@@ -290,8 +293,9 @@ export function useOpenCase() {
  */
 export function useAddToCase(caseId: number | null) {
   const queryClient = useQueryClient();
+  const { role } = useRole();
   return useMutation<AddToCaseResponse, Error, AddToCaseRequest>({
-    mutationFn: (body) => addToCase(caseId as number, body),
+    mutationFn: (body) => addToCase(caseId as number, body, role),
     onSuccess: () => {
       if (caseId === null) return;
       void queryClient.invalidateQueries({ queryKey: queryKeys.evidence(caseId) });
@@ -313,13 +317,19 @@ export interface ReviewInput {
  */
 export function useReviewSuggestion(caseId: number | null) {
   const queryClient = useQueryClient();
+  const { role } = useRole();
   return useMutation<ReviewResponse, Error, ReviewInput>({
     mutationFn: ({ suggestionId, decision, approver, note }) =>
-      reviewSuggestion(caseId as number, suggestionId, {
-        decision,
-        ...(approver ? { approver } : {}),
-        ...(note ? { note } : {}),
-      }),
+      reviewSuggestion(
+        caseId as number,
+        suggestionId,
+        {
+          decision,
+          ...(approver ? { approver } : {}),
+          ...(note ? { note } : {}),
+        },
+        role,
+      ),
     onSuccess: () => {
       if (caseId === null) return;
       void queryClient.invalidateQueries({ queryKey: queryKeys.suggestions(caseId) });

@@ -1,6 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { RoleSwitcher } from '@/components/shell/RoleSwitcher';
+
 import { BrandMark } from './BrandMark';
 
 /**
@@ -15,13 +17,16 @@ export function ToolShell({ children }: { children: React.ReactNode }) {
         <Link to="/" aria-label="QAIF — back to search" className="rounded-md">
           <BrandMark />
         </Link>
-        <Link
-          to="/"
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-caption font-medium text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          Back to search
-        </Link>
+        <div className="flex items-center gap-4">
+          <RoleSwitcher />
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-caption font-medium text-muted-foreground transition-colors hover:bg-surface-3 hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            Back to search
+          </Link>
+        </div>
       </header>
       <main className="mx-auto w-full max-w-[1080px] flex-1 px-6 py-10">{children}</main>
     </div>

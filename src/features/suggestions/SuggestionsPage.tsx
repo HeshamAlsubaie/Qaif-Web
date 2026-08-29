@@ -2,8 +2,10 @@ import { Bot, Check, ShieldQuestion, UserCheck, X } from 'lucide-react';
 import * as React from 'react';
 
 import { useReviewSuggestion, useSuggestions } from '@/api/queries';
+import { useRole } from '@/app/RoleContext';
 import { CaseScoped } from '@/components/common/CaseScoped';
 import { EvidenceCite } from '@/components/common/EvidenceCite';
+import { InvestigatorOnly } from '@/components/common/InvestigatorOnly';
 import { QueryBoundary } from '@/components/common/QueryBoundary';
 import { AiBadge } from '@/components/forensic/AiBadge';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +51,7 @@ interface SuggestionCardProps {
 
 function SuggestionCard({ caseId, suggestion: s, approver }: SuggestionCardProps) {
   const review = useReviewSuggestion(caseId);
+  const { canWrite } = useRole();
   const [pendingDecision, setPendingDecision] = React.useState<ReviewDecision | null>(null);
   const [note, setNote] = React.useState('');
 
@@ -125,7 +128,13 @@ function SuggestionCard({ caseId, suggestion: s, approver }: SuggestionCardProps
           )}
         </div>
 
-        {isPending && (
+        {isPending && !canWrite && (
+          <div className="border-t border-border/60 pt-3">
+            <InvestigatorOnly action="Reviewing an AI suggestion" />
+          </div>
+        )}
+
+        {isPending && canWrite && (
           <div className="flex flex-col gap-3 border-t border-border/60 pt-3">
             {pendingDecision === null ? (
               <div className="flex flex-wrap items-center gap-2">

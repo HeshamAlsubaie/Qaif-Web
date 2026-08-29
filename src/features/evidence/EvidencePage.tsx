@@ -2,7 +2,9 @@ import { AlertTriangle, Plus, X } from 'lucide-react';
 import * as React from 'react';
 
 import { useEvidence } from '@/api/queries';
+import { useRole } from '@/app/RoleContext';
 import { CaseScoped } from '@/components/common/CaseScoped';
+import { InvestigatorOnly } from '@/components/common/InvestigatorOnly';
 import { QueryBoundary } from '@/components/common/QueryBoundary';
 import { IntegrityBadge } from '@/components/forensic/IntegrityBadge';
 import { Badge } from '@/components/ui/badge';
@@ -137,31 +139,40 @@ export function EvidencePage() {
  */
 function EvidenceView({ caseId }: { caseId: number }) {
   const [adding, setAdding] = React.useState(false);
+  const { canWrite } = useRole();
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="type-caption">
-          Add a finding to collect an external claim into this case under custody.
-        </span>
-        <Button
-          size="sm"
-          variant={adding ? 'outline' : 'default'}
-          onClick={() => setAdding((v) => !v)}
-        >
-          {adding ? (
-            <>
-              <X aria-hidden />
-              Close
-            </>
-          ) : (
-            <>
-              <Plus aria-hidden />
-              Add finding
-            </>
-          )}
-        </Button>
-      </div>
-      {adding && <AddFindingPanel caseId={caseId} />}
+      {/* Add-a-finding is the in-case write: Investigator-only. A Viewer sees the manifest (a read)
+          but no add affordance — just an honest reason. */}
+      {canWrite ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="type-caption">
+              Add a finding to collect an external claim into this case under custody.
+            </span>
+            <Button
+              size="sm"
+              variant={adding ? 'outline' : 'default'}
+              onClick={() => setAdding((v) => !v)}
+            >
+              {adding ? (
+                <>
+                  <X aria-hidden />
+                  Close
+                </>
+              ) : (
+                <>
+                  <Plus aria-hidden />
+                  Add finding
+                </>
+              )}
+            </Button>
+          </div>
+          {adding && <AddFindingPanel caseId={caseId} />}
+        </>
+      ) : (
+        <InvestigatorOnly action="Adding a finding to a case" />
+      )}
       <EvidenceQuery caseId={caseId} />
     </div>
   );

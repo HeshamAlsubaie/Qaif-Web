@@ -6,7 +6,7 @@
  * carries the Investigator IAM headers, since the backend fail-closes to a read-only Viewer without.
  */
 import { apiRequest } from '@/api/client';
-import { investigatorHeaders } from '@/api/identity';
+import { roleHeaders, type Role } from '@/api/identity';
 import {
   addToCaseResponseSchema,
   caseSummaryResponseSchema,
@@ -223,14 +223,14 @@ export function getSandboxReport(
 /**
  * Open a new, empty attributed case — the deliberate custody boundary (audited, Investigator-only).
  * `reason` is MANDATORY (R10); the backend 422s on a blank one and 403s without the Investigator
- * role. The role/actor stand-ins ride the IAM headers ({@link investigatorHeaders}); custody begins
- * with the genesis entry in the response.
+ * role. The caller passes the role it is ACTING as; {@link roleHeaders} stamps the IAM headers, so a
+ * Viewer genuinely sends `Viewer` and is refused. Custody begins with the genesis entry in the reply.
  */
-export function openCase(body: OpenCaseRequest): Promise<OpenCaseResponse> {
+export function openCase(body: OpenCaseRequest, role: Role): Promise<OpenCaseResponse> {
   return apiRequest('/cases', openCaseResponseSchema, {
     method: 'POST',
     body,
-    headers: investigatorHeaders(),
+    headers: roleHeaders(role),
   });
 }
 
@@ -239,22 +239,31 @@ export function openCase(body: OpenCaseRequest): Promise<OpenCaseResponse> {
  * is sealed as intel-snapshot evidence (PROBABILISTIC, R4) under ONE ACQUIRED custody event (R3).
  * Investigator-only (403 for Viewer); 404 if the case does not exist. Idempotent by (case, sha256).
  */
-export function addToCase(caseId: number, body: AddToCaseRequest): Promise<AddToCaseResponse> {
+export function addToCase(
+  caseId: number,
+  body: AddToCaseRequest,
+  role: Role,
+): Promise<AddToCaseResponse> {
   return apiRequest(`/cases/${caseId}/evidence`, addToCaseResponseSchema, {
     method: 'POST',
     body,
-    headers: investigatorHeaders(),
+    headers: roleHeaders(role),
   });
 }
 
-/** Record a human's approve/reject decision on a suggestion (R6). */
+/**
+ * Record a human's approve/reject decision on a suggestion (R6) — Investigator-only, so it carries
+ * the acting role's IAM headers like the other writes (a Viewer is refused 403).
+ */
 export function reviewSuggestion(
   caseId: number,
   suggestionId: number,
   body: ReviewRequest,
+  role: Role,
 ): Promise<ReviewResponse> {
   return apiRequest(`/cases/${caseId}/suggestions/${suggestionId}/review`, reviewResponseSchema, {
     method: 'POST',
     body,
+    headers: roleHeaders(role),
   });
 }

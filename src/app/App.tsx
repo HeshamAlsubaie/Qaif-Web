@@ -2,6 +2,7 @@ import { type ReactElement } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import { CaseProvider } from '@/app/CaseContext';
+import { RoleProvider } from '@/app/RoleContext';
 import { AppShell } from '@/components/shell/AppShell';
 import { NAV_SECTIONS } from '@/components/shell/navConfig';
 import { CryptoPage } from '@/features/crypto/CryptoPage';
@@ -105,8 +106,10 @@ const router = createBrowserRouter([
  */
 export function App() {
   return (
-    <CaseProvider>
-      <RouterProvider router={router} />
-    </CaseProvider>
+    <RoleProvider>
+      <CaseProvider>
+        <RouterProvider router={router} />
+      </CaseProvider>
+    </RoleProvider>
   );
 }

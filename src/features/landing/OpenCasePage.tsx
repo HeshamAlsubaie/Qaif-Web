@@ -3,7 +3,9 @@ import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useSelectedCase } from '@/app/CaseContext';
+import { useRole } from '@/app/RoleContext';
 import { useOpenCase } from '@/api/queries';
+import { InvestigatorOnly } from '@/components/common/InvestigatorOnly';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,10 +30,13 @@ export function OpenCasePage() {
   const [reason, setReason] = React.useState(seed?.reason ?? '');
   const navigate = useNavigate();
   const { setCaseId } = useSelectedCase();
+  const { canWrite } = useRole();
   const open = useOpenCase();
 
   // Both fields mandatory (R10): a blank title or reason can never open a case from this form.
-  const canSubmit = title.trim() !== '' && reason.trim() !== '' && !open.isPending;
+  // A Viewer cannot submit at all — the whole form is gated (and the backend 403s regardless).
+  const canSubmit =
+    canWrite && title.trim() !== '' && reason.trim() !== '' && !open.isPending;
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,18 +61,30 @@ export function OpenCasePage() {
         sub="Custody begins here. Opening a case is an audited, Investigator-only write."
       />
 
-      <Card>
-        <CardContent className="flex flex-col gap-5 pt-6">
-          <div className="flex items-start gap-2 rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-caption text-muted-foreground">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-            <span>
-              <span className="font-semibold text-foreground">Audited write.</span> Submitting records
-              a genesis custody entry (<span className="font-mono">POST /cases</span>) attributed to
-              you as an Investigator. The reason is the mandatory opening rationale (R10).
+      {!canWrite ? (
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-6">
+            <InvestigatorOnly action="Opening a case" />
+            <span className="text-caption text-muted-foreground">
+              You can still search, look up indicators, and read cases as a Viewer. Opening a case is
+              the deliberate custody boundary and stays Investigator-only.
             </span>
-          </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col gap-5 pt-6">
+            <div className="flex items-start gap-2 rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2.5 text-caption text-muted-foreground">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+              <span>
+                <span className="font-semibold text-foreground">Audited write.</span> Submitting
+                records a genesis custody entry (<span className="font-mono">POST /cases</span>)
+                attributed to you as an Investigator. The reason is the mandatory opening rationale
+                (R10).
+              </span>
+            </div>
 
-          <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+            <form className="flex flex-col gap-4" onSubmit={onSubmit}>
             <label className="flex flex-col gap-1.5">
               <span className="type-label">Case title</span>
               <input
@@ -130,9 +147,10 @@ export function OpenCasePage() {
                 </span>
               ) : null}
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }
