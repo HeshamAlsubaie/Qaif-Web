@@ -36,6 +36,7 @@ import type {
   wazuhAlertSchema,
   wazuhAlertsResponseSchema,
   wazuhIndicatorSchema,
+  wazuhMitreSchema,
   wazuhRuleSchema,
   wazuhAgentSchema,
   matchEntityHitSchema,
@@ -105,6 +106,7 @@ export type AddToCaseResponse = z.infer<typeof addToCaseResponseSchema>;
 
 // -- Wazuh SIEM alert feed (read-only signal source) -------------------------
 
+export type WazuhMitre = z.infer<typeof wazuhMitreSchema>;
 export type WazuhRule = z.infer<typeof wazuhRuleSchema>;
 export type WazuhAgent = z.infer<typeof wazuhAgentSchema>;
 export type WazuhIndicator = z.infer<typeof wazuhIndicatorSchema>;

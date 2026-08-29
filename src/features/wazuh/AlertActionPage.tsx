@@ -1,4 +1,13 @@
-import { ArrowLeft, FilePlus2, Search, ShieldAlert } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  FileCode2,
+  Fingerprint,
+  FilePlus2,
+  Search,
+  ShieldAlert,
+  Target,
+} from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useRole } from '@/app/RoleContext';
@@ -10,9 +19,44 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatUtc } from '@/lib/format';
-import type { WazuhAlert, WazuhIndicator } from '@/types/api';
+import type { WazuhAlert, WazuhIndicator, WazuhMitre } from '@/types/api';
 
 import { severityBand } from './severity';
+
+// File PATHS (and anything we can't recognise) are forensic context, NOT reputation-lookup targets —
+// they render as non-clickable artifacts. Every other extracted type is a searchable pivot.
+const ARTIFACT_TYPES = new Set(['file_path', 'unknown']);
+
+const TYPE_LABEL: Record<string, string> = {
+  file_hash: 'hash',
+  ip: 'ip',
+  domain: 'domain',
+  url: 'url',
+  file_path: 'path',
+};
+
+function isSearchable(type: string): boolean {
+  return !ARTIFACT_TYPES.has(type);
+}
+
+function typeLabel(type: string): string {
+  return TYPE_LABEL[type] ?? type;
+}
+
+/** Name the hash algorithm from the digest length — honest (derived from the value), never assumed. */
+function hashAlgo(value: string): string | null {
+  if (value.length === 64) return 'SHA-256';
+  if (value.length === 40) return 'SHA-1';
+  if (value.length === 32) return 'MD5';
+  return null;
+}
+
+/** True only when the rule actually carries a MITRE mapping with at least one value. */
+function hasMitre(mitre: WazuhMitre | null | undefined): mitre is WazuhMitre {
+  return (
+    !!mitre && (mitre.id.length > 0 || mitre.tactic.length > 0 || mitre.technique.length > 0)
+  );
+}
 
 /**
  * The alert action page — "what do you want to do with this signal?". Reached by clicking an alert
@@ -103,6 +147,11 @@ function AlertActions({ alert }: { alert: WazuhAlert }) {
                   {alert.agent.name} <span className="text-muted-foreground">({alert.agent.id})</span>
                 </span>
               </Field>
+              {alert.agent.ip && (
+                <Field label="Agent IP">
+                  <span className="font-mono">{alert.agent.ip}</span>
+                </Field>
+              )}
               <Field label="Rule ID">
                 <span className="font-mono">{alert.rule.id}</span>
               </Field>
@@ -125,13 +174,20 @@ function AlertActions({ alert }: { alert: WazuhAlert }) {
               )}
             </div>
 
+            {hasMitre(alert.rule.mitre) && <MitreBlock mitre={alert.rule.mitre} />}
+
             {alert.rule.groups.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {alert.rule.groups.map((g) => (
-                  <Badge key={g} variant="muted">
-                    {g}
-                  </Badge>
-                ))}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Rule groups
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {alert.rule.groups.map((g) => (
+                    <Badge key={g} variant="muted">
+                      {g}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -154,48 +210,65 @@ function AlertActions({ alert }: { alert: WazuhAlert }) {
 }
 
 /**
- * Launch the free universal search for an indicator carried by this alert. Each extracted indicator
- * is offered explicitly; the search runs on the landing page (`/lookup` + `/match`), pre-filled. If
- * the alert carries no indicators (routine alerts often don't), we fall back to searching the agent
- * name, clearly labelled as such — never a silent no-op.
+ * The rule's MITRE ATT&CK mapping — forensic CONTEXT carried verbatim from the alert, not a QAIF
+ * attribution. Only sub-fields that are actually present render (technique / tactic / id), each as
+ * neutral badges. The block is shown only when {@link hasMitre} — an alert without a mapping shows
+ * nothing here, never an invented technique.
+ */
+function MitreBlock({ mitre }: { mitre: WazuhMitre }) {
+  const rows = [
+    { label: 'Technique', values: mitre.technique },
+    { label: 'Tactic', values: mitre.tactic },
+    { label: 'Technique ID', values: mitre.id },
+  ].filter((row) => row.values.length > 0);
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-border bg-surface-0 p-3">
+      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <Target className="size-3.5" aria-hidden />
+        MITRE ATT&CK
+      </span>
+      <div className="flex flex-col gap-1.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex flex-wrap items-baseline gap-1.5">
+            <span className="w-24 shrink-0 text-caption text-muted-foreground">{row.label}</span>
+            {row.values.map((value) => (
+              <Badge key={value} variant="outline">
+                {value}
+              </Badge>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The alert's extracted indicators as TYPED chips. A hash / IP / domain (etc.) is a click-to-search
+ * PIVOT — clicking runs the free universal search (`/lookup` + `/match`) pre-filled, the same launch
+ * the feed already uses. A file PATH is a non-clickable artifact, visually distinct, shown as context
+ * only (a path is not a reputation lookup). If the alert carries none (routine alerts often don't),
+ * that is said honestly, with the agent name offered as a starting search — never a silent no-op.
  */
 function SearchAction({ alert }: { alert: WazuhAlert }) {
   const navigate = useNavigate();
   const runSearch = (query: string) => navigate('/', { state: { prefill: query } });
 
   const indicators = alert.extracted_indicators;
+  const pivots = indicators.filter((ind) => isSearchable(ind.type));
+  const artifacts = indicators.filter((ind) => !isSearchable(ind.type));
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-body-lg">
           <Search className="size-4 text-primary" aria-hidden />
-          Search an indicator
+          Extracted indicators
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {indicators.length > 0 ? (
-          <>
-            <span className="type-caption">
-              This alert carried {indicators.length} indicator{indicators.length === 1 ? '' : 's'}.
-              Search one across every enabled intelligence source (free lookup — nothing is written).
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {indicators.map((ind: WazuhIndicator) => (
-                <Button
-                  key={`${ind.type}:${ind.value}`}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => runSearch(ind.value)}
-                >
-                  <Search aria-hidden />
-                  <span className="font-mono">{ind.value}</span>
-                  <Badge variant="muted">{ind.type}</Badge>
-                </Button>
-              ))}
-            </div>
-          </>
-        ) : (
+        {indicators.length === 0 ? (
           <>
             <span className="type-caption">
               This alert carried no extracted indicators (routine alerts often don’t). You can still
@@ -208,9 +281,92 @@ function SearchAction({ alert }: { alert: WazuhAlert }) {
               </Button>
             </div>
           </>
+        ) : (
+          <>
+            <span className="type-caption">
+              A hash, IP, or domain is a click-to-search pivot — it runs a free lookup across every
+              enabled source (nothing is written). A file path is context only, not a lookup.
+            </span>
+
+            {pivots.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {pivots.map((ind) => (
+                  <IndicatorPivot
+                    key={`${ind.type}:${ind.value}`}
+                    indicator={ind}
+                    onSearch={runSearch}
+                  />
+                ))}
+              </div>
+            )}
+
+            {artifacts.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  File artifacts · context only, not searchable
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {artifacts.map((ind) => (
+                    <ArtifactChip key={`${ind.type}:${ind.value}`} indicator={ind} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** A clickable pivot chip: runs the universal search on this indicator's value. */
+function IndicatorPivot({
+  indicator,
+  onSearch,
+}: {
+  indicator: WazuhIndicator;
+  onSearch: (query: string) => void;
+}) {
+  const algo = indicator.type === 'file_hash' ? hashAlgo(indicator.value) : null;
+  const label = algo ? `${typeLabel(indicator.type)} · ${algo}` : typeLabel(indicator.type);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSearch(indicator.value)}
+      title={`Search ${indicator.value}`}
+      className="group inline-flex max-w-full items-center gap-1.5 rounded-md border border-border bg-surface-1 px-2.5 py-1.5 text-left transition-colors hover:border-primary/50 hover:bg-surface-2"
+    >
+      {indicator.type === 'file_hash' ? (
+        <Fingerprint className="size-3.5 shrink-0 text-primary" aria-hidden />
+      ) : (
+        <Search className="size-3.5 shrink-0 text-primary" aria-hidden />
+      )}
+      <span className="max-w-[20rem] truncate font-mono text-caption text-foreground">
+        {indicator.value}
+      </span>
+      <Badge variant="muted">{label}</Badge>
+      <ArrowUpRight
+        className="size-3 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+        aria-hidden
+      />
+    </button>
+  );
+}
+
+/** A NON-clickable artifact chip (file path): forensic context, deliberately not a search pivot. */
+function ArtifactChip({ indicator }: { indicator: WazuhIndicator }) {
+  return (
+    <span
+      title={indicator.value}
+      className="inline-flex max-w-full cursor-default items-center gap-1.5 rounded-md border border-dashed border-border bg-surface-2/50 px-2.5 py-1.5"
+    >
+      <FileCode2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="max-w-[24rem] truncate font-mono text-caption text-muted-foreground">
+        {indicator.value}
+      </span>
+      <Badge variant="outline">{typeLabel(indicator.type)}</Badge>
+    </span>
   );
 }
 

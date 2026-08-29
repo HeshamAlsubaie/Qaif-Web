@@ -302,16 +302,30 @@ export const addToCaseResponseSchema = z.object({
  * `unavailable` (Indexer unreachable) feed still validates — it arrives as a clean, EMPTY list, so
  * the UI shows an honest "source unavailable" state rather than crashing or faking alerts.
  */
+/**
+ * The rule's MITRE ATT&CK mapping, carried verbatim from the alert as forensic CONTEXT (not a QAIF
+ * attribution). Each field is a list Wazuh emits; any may be empty when the rule maps only some. The
+ * whole block is absent (nullish) on alerts that carry no MITRE mapping — never fabricated.
+ */
+export const wazuhMitreSchema = z.object({
+  id: z.array(z.string()).default([]),
+  tactic: z.array(z.string()).default([]),
+  technique: z.array(z.string()).default([]),
+});
+
 export const wazuhRuleSchema = z.object({
   id: z.string(),
   level: z.number().int().nullable(),
   description: z.string(),
   groups: z.array(z.string()),
+  mitre: wazuhMitreSchema.nullish(),
 });
 
 export const wazuhAgentSchema = z.object({
   id: z.string(),
   name: z.string(),
+  // The agent's IP when the alert carried one (also surfaced as a searchable `ip` indicator).
+  ip: z.string().nullish(),
 });
 
 /** An indicator `detect.py` extracted from the alert — normalized like search/match, ready to hand off. */
