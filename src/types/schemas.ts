@@ -233,6 +233,41 @@ export const reviewResponseSchema = z.object({
   audit_recorded: z.boolean(),
 });
 
+// -- IOC lookup (case-independent external intelligence; POST /lookup) -------
+
+/**
+ * The result envelope from `POST /lookup` — a case-INDEPENDENT indicator lookup that fans out to
+ * external intelligence sources and writes NOTHING to QAIF.
+ *
+ * The external-source honesty is ENFORCED here, not merely typed (mirroring how `tier` enforces R4
+ * on case data): every per-source result MUST carry `tier: 'external-source-claim'` and
+ * `confirmed: false`. A source claiming to be confirmed QAIF evidence fails validation at the
+ * boundary — so a third-party claim can never be silently rendered as adjudicated case evidence.
+ */
+export const lookupSourceResultSchema = z.object({
+  source: z.string(),
+  family: z.string(),
+  queried_value: z.string(),
+  status: z.string(),
+  timestamp: z.string(),
+  tier: z.literal('external-source-claim'),
+  confirmed: z.literal(false),
+  resolved_from: z.string().nullable(),
+  elapsed_ms: z.number(),
+  payload: z.record(z.string(), z.unknown()).nullable(),
+  error: z.string().nullable(),
+});
+
+export const lookupResponseSchema = z.object({
+  indicator: z.string(),
+  detected_type: z.string(),
+  detail: z.string(),
+  recognized: z.boolean(),
+  note: z.string().nullable(),
+  elapsed_ms: z.number(),
+  results: z.array(lookupSourceResultSchema),
+});
+
 // -- report (canonical 6.1 record) ------------------------------------------
 
 /**

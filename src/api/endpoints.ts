@@ -13,6 +13,7 @@ import {
   findingsResponseSchema,
   graphResponseSchema,
   healthResponseSchema,
+  lookupResponseSchema,
   reportResponseSchema,
   reviewResponseSchema,
   suggestionsResponseSchema,
@@ -25,6 +26,7 @@ import type {
   FindingsResponse,
   GraphResponse,
   HealthResponse,
+  LookupResponse,
   ReportResponse,
   ReviewRequest,
   ReviewResponse,
@@ -69,6 +71,21 @@ export function getSuggestions(caseId: number, signal?: AbortSignal): Promise<Su
 
 export function getReport(caseId: number, signal?: AbortSignal): Promise<ReportResponse> {
   return apiRequest(`/cases/${caseId}/report`, reportResponseSchema, { signal });
+}
+
+/**
+ * Case-INDEPENDENT IOC intelligence lookup. Unlike every read above (which SELECTs from the QAIF
+ * database), this POST reaches OUTBOUND to third-party sources and returns their claims. It writes
+ * NOTHING to QAIF — no case, no custody, no row — and it is lookup only: it never submits, uploads,
+ * or detonates a sample (R9). Despite the POST verb, the backend classifies it as a read/query, so
+ * the API still exposes exactly one state-changing route (the review below).
+ */
+export function lookupIndicator(indicator: string, signal?: AbortSignal): Promise<LookupResponse> {
+  return apiRequest('/lookup', lookupResponseSchema, {
+    method: 'POST',
+    body: { indicator },
+    ...(signal ? { signal } : {}),
+  });
 }
 
 /** The one state-changing call: record a human's approve/reject decision on a suggestion (R6). */

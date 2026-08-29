@@ -19,6 +19,7 @@ import {
   getReport,
   getSuggestions,
   getTimeline,
+  lookupIndicator,
   reviewSuggestion,
 } from '@/api/endpoints';
 import {
@@ -28,6 +29,7 @@ import {
   type FindingsResponse,
   type GraphResponse,
   type HealthResponse,
+  type LookupResponse,
   type ReportResponse,
   type ReviewDecision,
   type ReviewResponse,
@@ -129,6 +131,18 @@ export function useReport(
     queryFn: ({ signal }) => getReport(caseId as number, signal),
     enabled: caseId !== null && (options.enabled ?? true),
     staleTime: 60_000,
+  });
+}
+
+/**
+ * Case-INDEPENDENT IOC lookup, modelled as a mutation because it is an imperative, user-triggered
+ * action with side effects OUTSIDE QAIF (an outbound query to third-party sources) — not cached
+ * server state keyed to a case. It writes nothing to QAIF, so there is nothing to invalidate on
+ * success. The typed `LookupResponse` is Zod-validated at the boundary before a view sees it.
+ */
+export function useIocLookup() {
+  return useMutation<LookupResponse, Error, string>({
+    mutationFn: (indicator) => lookupIndicator(indicator),
   });
 }
 

@@ -11,6 +11,7 @@ import { IpsPage } from '@/features/ips/IpsPage';
 import { OverviewPage } from '@/features/overview/OverviewPage';
 import { StageCPage } from '@/features/placeholder/StageCPage';
 import { ReportPage } from '@/features/report/ReportPage';
+import { SearchPage } from '@/features/search/SearchPage';
 import { SuggestionsPage } from '@/features/suggestions/SuggestionsPage';
 import { ThreatsPage } from '@/features/threats/ThreatsPage';
 import { TimelinePage } from '@/features/timeline/TimelinePage';
@@ -18,6 +19,7 @@ import { TimelinePage } from '@/features/timeline/TimelinePage';
 // Built section pages (Stage C1). Any nav section without an entry here routes to the honest
 // Stage C placeholder, so the whole console stays navigable.
 const PAGES: Record<string, ReactElement> = {
+  '/search': <SearchPage />,
   '/threats': <ThreatsPage />,
   '/ips': <IpsPage />,
   '/graph': <GraphPage />,

@@ -8,6 +8,7 @@ import {
   HardDriveDownload,
   LayoutGrid,
   Network,
+  Search,
   ShieldAlert,
   Waypoints,
   type LucideIcon,
@@ -28,6 +29,10 @@ export interface NavSection {
  * whole console is navigable without fabricating content.
  */
 export const NAV_SECTIONS: NavSection[] = [
+  // A primary capability, not a case section: IOC lookup is case-INDEPENDENT (the second way to
+  // use QAIF), so it leads the nav in its own group and needs no selected case.
+  { path: '/search', label: 'Search', icon: Search, group: 'Search', stageC: false },
+
   { path: '/', label: 'Overview', icon: LayoutGrid, group: 'Case', stageC: false },
 
   { path: '/threats', label: 'Threats', icon: ShieldAlert, group: 'Findings', stageC: false },
