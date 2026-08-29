@@ -1,0 +1,109 @@
+import { Loader2, Search } from 'lucide-react';
+import * as React from 'react';
+
+import { useIndicatorMatch, useIocLookup } from '@/api/queries';
+import { LoadingState } from '@/components/common/States';
+import { Button } from '@/components/ui/button';
+import { IdleHint, IocResults, RequestErrorState } from '@/features/search/IocResults';
+
+import { MatchBanner } from './MatchBanner';
+
+/**
+ * The landing's STAR: one universal search box. On submit it fires TWO reads in parallel against the
+ * live backend:
+ *   1. `POST /lookup` — fan out to every enabled external source and render the rich per-source
+ *      findings (via the shared {@link IocResults}). Each row is a third-party CLAIM, shown honestly
+ *      (tier `external-source-claim`, `confirmed: false`) — never laundered into confirmed evidence.
+ *   2. `GET /match` — EXACT cross-case match. If this exact indicator already appears in a case, a
+ *      dismissible {@link MatchBanner} pops ABOVE the results and links into that case.
+ *
+ * Free search: nothing here is written, no case, no custody. This box lives on the bare landing (no
+ * console sidebar) and renders its results inline below itself.
+ */
+export function UniversalSearch() {
+  const [value, setValue] = React.useState('');
+  const [matchDismissed, setMatchDismissed] = React.useState(false);
+  const lookup = useIocLookup();
+  const match = useIndicatorMatch();
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const query = value.trim();
+    if (!query || lookup.isPending) return;
+    setMatchDismissed(false);
+    lookup.mutate(query);
+    // The match check runs alongside the lookup; a failure here must never block the lookup, so it
+    // is a separate mutation whose error simply hides the banner (no match shown), never surfaced.
+    match.mutate(query);
+  };
+
+  const showMatch =
+    match.isSuccess && match.data.match_count > 0 && !matchDismissed;
+
+  return (
+    <div className="flex w-full flex-col items-center">
+      <form onSubmit={submit} className="w-full max-w-[720px]">
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <input
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder="Search any indicator — IP, domain, hash, URL, CVE, wallet address…"
+            autoComplete="off"
+            spellCheck={false}
+            aria-label="Search any indicator"
+            className="h-14 w-full rounded-xl border border-border bg-surface-1 pl-12 pr-32 font-mono text-body-lg text-foreground shadow-sm outline-none transition-colors focus:border-primary/70 focus:bg-surface-0"
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            <Button type="submit" size="lg" disabled={!value.trim() || lookup.isPending}>
+              {lookup.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden />
+                  Searching…
+                </>
+              ) : (
+                <>
+                  <Search aria-hidden />
+                  Search
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+        <p className="mt-2 text-center text-micro text-muted-foreground">
+          Read-only intelligence lookup — QAIF never uploads, submits, or detonates a sample. Free
+          search: nothing here is written or under chain of custody.
+        </p>
+      </form>
+
+      {(showMatch || lookup.isPending || lookup.isError || lookup.isSuccess) && (
+        <div className="mt-8 flex w-full max-w-[960px] flex-col gap-4">
+          {showMatch && (
+            <MatchBanner data={match.data} onDismiss={() => setMatchDismissed(true)} />
+          )}
+          {lookup.isPending && (
+            <LoadingState message="Querying external intelligence sources…" />
+          )}
+          {lookup.isError && (
+            <RequestErrorState
+              error={lookup.error}
+              onRetry={() => {
+                if (lookup.variables !== undefined) lookup.mutate(lookup.variables);
+              }}
+            />
+          )}
+          {lookup.isSuccess && <IocResults data={lookup.data} />}
+        </div>
+      )}
+
+      {lookup.isIdle && (
+        <div className="mt-8 w-full max-w-[720px]">
+          <IdleHint />
+        </div>
+      )}
+    </div>
+  );
+}

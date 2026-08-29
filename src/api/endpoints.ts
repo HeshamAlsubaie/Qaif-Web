@@ -15,6 +15,7 @@ import {
   graphResponseSchema,
   healthResponseSchema,
   lookupResponseSchema,
+  matchResponseSchema,
   reportResponseSchema,
   reviewResponseSchema,
   searchResponseSchema,
@@ -30,6 +31,7 @@ import type {
   GraphResponse,
   HealthResponse,
   LookupResponse,
+  MatchResponse,
   ReportResponse,
   ReviewRequest,
   ReviewResponse,
@@ -119,6 +121,19 @@ export function searchCases(
   if (opts.limit !== undefined) params.set('limit', String(opts.limit));
   if (opts.caseId !== undefined) params.set('case_id', String(opts.caseId));
   return apiRequest(`/search?${params.toString()}`, searchResponseSchema, {
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * Cross-case EXACT match — the "have we seen this indicator before?" read. A GET, SELECT-only, and
+ * NOT a write route: it reads entities + their case and writes nothing. Matching is EXACT
+ * normalized-value equality (never substring/fuzzy), so a hit is a genuine prior appearance of this
+ * exact indicator — no false positives by construction. `match_count` 0 is a clean, expected result.
+ */
+export function matchIndicator(indicator: string, signal?: AbortSignal): Promise<MatchResponse> {
+  const params = new URLSearchParams({ indicator });
+  return apiRequest(`/match?${params.toString()}`, matchResponseSchema, {
     ...(signal ? { signal } : {}),
   });
 }

@@ -16,12 +16,16 @@ export function SideNav() {
   const caseQuery = useCase(caseId);
   const aiCount = caseQuery.data?.counts.ai_suggestions ?? 0;
 
+  // Search-first: with no case open (the launcher state) show ONLY the case-independent tools;
+  // custody/evidence/report and every case-scoped view appear once a case is opened.
+  const sections = caseId === null ? NAV_SECTIONS.filter((s) => !s.caseOnly) : NAV_SECTIONS;
+
   return (
     <nav
       aria-label="Sections"
       className="flex h-full flex-col gap-0.5 overflow-y-auto border-r border-border bg-surface-2 px-3 py-4"
     >
-      {NAV_SECTIONS.map((section) => (
+      {sections.map((section) => (
         <React.Fragment key={section.path}>
           {section.group && (
             <span className="px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/70">

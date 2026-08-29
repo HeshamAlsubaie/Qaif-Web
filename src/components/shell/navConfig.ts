@@ -1,5 +1,4 @@
 import {
-  BellRing,
   Bot,
   Bug,
   Clock,
@@ -22,26 +21,36 @@ export interface NavSection {
   group?: string;
   /** Stage C sections are routed placeholders until their detail views are built. */
   stageC: boolean;
+  /**
+   * A case-only section makes sense only inside an opened case — custody, evidence, report, and the
+   * per-case views. It is hidden from the nav while no case is open (the search-first launcher
+   * state). Case-INDEPENDENT tools (Search, CVEs, Crypto) are always available.
+   */
+  caseOnly: boolean;
 }
 
 /**
- * The left-nav map. Overview is fully built now; the rest are honest Stage C placeholders so the
- * whole console is navigable without fabricating content.
+ * The left-nav map. Search-first: the case-independent tools are always available; everything that
+ * only means something inside a case is `caseOnly` and hidden until one is opened. Overview and the
+ * rest are honest Stage C placeholders where their detail view is not built yet.
+ *
+ * Wazuh Alerts and Drop-file Triage are NOT nav items — they are landing launchers (free search),
+ * so they live on the landing page, not here. Their routes still exist for those buttons.
  */
 export const NAV_SECTIONS: NavSection[] = [
-  // A primary capability, not a case section: IOC lookup is case-INDEPENDENT (the second way to
-  // use QAIF), so it leads the nav in its own group and needs no selected case.
-  { path: '/search', label: 'Search', icon: Search, group: 'Search', stageC: false },
+  // Case-INDEPENDENT tools — the free-search way to use QAIF; always visible, no case needed.
+  { path: '/search', label: 'Search', icon: Search, group: 'Search', stageC: false, caseOnly: false },
+  { path: '/cves', label: 'CVEs', icon: Bug, stageC: true, caseOnly: false },
+  { path: '/crypto', label: 'Crypto', icon: Coins, stageC: false, caseOnly: false },
 
-  { path: '/', label: 'Overview', icon: LayoutGrid, group: 'Case', stageC: false },
+  // Case-SCOPED — visible only once a case is open.
+  { path: '/overview', label: 'Overview', icon: LayoutGrid, group: 'Case', stageC: false, caseOnly: true },
 
-  { path: '/threats', label: 'Threats', icon: ShieldAlert, group: 'Findings', stageC: false },
-  { path: '/ips', label: 'IPs / Network', icon: Network, stageC: false },
-  { path: '/cves', label: 'CVEs', icon: Bug, stageC: true },
-  { path: '/crypto', label: 'Crypto', icon: Coins, stageC: false },
+  { path: '/threats', label: 'Threats', icon: ShieldAlert, group: 'Findings', stageC: false, caseOnly: true },
+  { path: '/ips', label: 'IPs / Network', icon: Network, stageC: false, caseOnly: true },
 
-  { path: '/graph', label: 'Graph', icon: Waypoints, group: 'Correlation', stageC: false },
-  { path: '/timeline', label: 'Timeline', icon: Clock, stageC: false },
+  { path: '/graph', label: 'Graph', icon: Waypoints, group: 'Correlation', stageC: false, caseOnly: true },
+  { path: '/timeline', label: 'Timeline', icon: Clock, stageC: false, caseOnly: true },
 
   {
     path: '/evidence',
@@ -49,8 +58,8 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: HardDriveDownload,
     group: 'Custody',
     stageC: false,
+    caseOnly: true,
   },
-  { path: '/suggestions', label: 'AI Suggestions', icon: Bot, stageC: false },
-  { path: '/alerts', label: 'Alerts (Wazuh)', icon: BellRing, stageC: true },
-  { path: '/report', label: 'Report', icon: FileText, stageC: false },
+  { path: '/suggestions', label: 'AI Suggestions', icon: Bot, stageC: false, caseOnly: true },
+  { path: '/report', label: 'Report', icon: FileText, stageC: false, caseOnly: true },
 ];

@@ -421,6 +421,32 @@ export const searchResponseSchema = z.object({
   truncated: z.record(z.string(), z.boolean()),
 });
 
+// -- cross-case EXACT match ("have we seen this before?"; GET /match) --------
+
+/**
+ * A single entity whose `normalized_value` EXACTLY equals the normalized indicator, with its case
+ * context. `tier` is the entity's R4 tier, so the caller can say "appears in case X as a CONFIRMED
+ * FileHash". This is EXACT normalized-value equality only — never substring or fuzzy — so there are
+ * no false positives by construction (the backend guarantees it).
+ */
+export const matchEntityHitSchema = z.object({
+  case_id: z.number().int(),
+  case_title: z.string(),
+  entity_id: z.number().int(),
+  entity_type: z.string(),
+  matched_value: z.string(),
+  normalized_value: z.string(),
+  tier: tierSchema,
+});
+
+export const matchResponseSchema = z.object({
+  indicator: z.string(),
+  normalized: z.string(),
+  detected_type: z.string().nullable(),
+  match_count: z.number().int(),
+  matches: z.array(matchEntityHitSchema),
+});
+
 // -- crypto funds-flow trace (case read; always probabilistic — R4) ---------
 
 /**

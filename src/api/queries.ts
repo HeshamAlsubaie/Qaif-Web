@@ -21,6 +21,7 @@ import {
   getSuggestions,
   getTimeline,
   lookupIndicator,
+  matchIndicator,
   reviewSuggestion,
   searchCases,
 } from '@/api/endpoints';
@@ -33,6 +34,7 @@ import {
   type GraphResponse,
   type HealthResponse,
   type LookupResponse,
+  type MatchResponse,
   type ReportResponse,
   type ReviewDecision,
   type ReviewResponse,
@@ -173,6 +175,18 @@ export function useIocLookup() {
 export function useCaseSearch() {
   return useMutation<SearchResponse, Error, string>({
     mutationFn: (q) => searchCases(q),
+  });
+}
+
+/**
+ * Cross-case EXACT-match lookup ("have we seen this indicator before?"). Modelled as a mutation for
+ * the same reason as {@link useIocLookup}: it is user-triggered (fired on submit alongside the
+ * lookup), reads only (SELECT-only on the backend), and writes nothing, so there is nothing to
+ * invalidate. The typed `MatchResponse` reaches the view only after boundary validation.
+ */
+export function useIndicatorMatch() {
+  return useMutation<MatchResponse, Error, string>({
+    mutationFn: (indicator) => matchIndicator(indicator),
   });
 }
 

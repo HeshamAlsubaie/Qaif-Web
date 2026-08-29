@@ -31,6 +31,8 @@ import type {
   healthResponseSchema,
   lookupResponseSchema,
   lookupSourceResultSchema,
+  matchEntityHitSchema,
+  matchResponseSchema,
   reportResponseSchema,
   reviewRequestSchema,
   reviewResponseSchema,
@@ -83,6 +85,9 @@ export type ReportResponse = z.infer<typeof reportResponseSchema>;
 
 export type LookupSourceResult = z.infer<typeof lookupSourceResultSchema>;
 export type LookupResponse = z.infer<typeof lookupResponseSchema>;
+
+export type MatchEntityHit = z.infer<typeof matchEntityHitSchema>;
+export type MatchResponse = z.infer<typeof matchResponseSchema>;
 
 export type CveNvdMetadata = z.infer<typeof cveNvdMetadataSchema>;
 export type CveOtxContext = z.infer<typeof cveOtxContextSchema>;
