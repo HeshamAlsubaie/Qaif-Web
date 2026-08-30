@@ -10,7 +10,7 @@ import {
 import * as React from 'react';
 import { useNavigate, type To } from 'react-router-dom';
 
-import qaifLogo from '@/assets/qaif-logo.png';
+import { Logo } from '@/components/common/Logo';
 import { useSelectedCase } from '@/app/CaseContext';
 import { useRole } from '@/app/RoleContext';
 import { Button } from '@/components/ui/button';
@@ -157,13 +157,10 @@ export function LandingPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center overflow-y-auto bg-surface-0 px-6 py-6">
       {/*
-        Landing role switcher DISABLED for now (IAM not removed): the switcher still lives in
-        AppShell/ToolShell and all IAM code (RoleContext, roleHeaders, InvestigatorOnly gates,
-        backend enforcement) is intact. Re-enable this and revert RoleContext's DEFAULT_ROLE to
-        Viewer when IAM returns to the landing.
-        <div className="flex w-full max-w-[1080px] items-center justify-end">
-          <RoleSwitcher />
-        </div>
+        No role switcher: the Viewer/Investigator dev toggle was removed everywhere. The effective
+        role is a fixed config constant (app/config EFFECTIVE_ROLE = Investigator); all IAM code
+        (RoleContext, roleHeaders, InvestigatorOnly gates, backend enforcement) is intact. Stage-5
+        auth sources the role from the session and deletes the constant.
       */}
 
       {/*
@@ -178,11 +175,7 @@ export function LandingPage() {
       */}
       <div className="flex w-full max-w-[1080px] flex-1 flex-col items-center justify-center gap-8">
         <div className="flex w-full flex-col items-center gap-6">
-          <img
-            src={qaifLogo}
-            alt="QAIF"
-            className="h-auto w-[360px] max-w-[86vw] max-h-[48vh] select-none object-contain"
-          />
+          <Logo variant="full" />
           <UniversalSearch />
         </div>
 

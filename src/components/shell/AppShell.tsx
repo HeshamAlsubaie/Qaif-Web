@@ -1,26 +1,26 @@
-import { ShieldCheck } from 'lucide-react';
 import { Outlet } from 'react-router-dom';
 
+import { Logo } from '@/components/common/Logo';
 import { CaseSelector } from '@/components/shell/CaseSelector';
 import { CaseTabs } from '@/components/shell/CaseTabs';
-import { HealthDot } from '@/components/shell/HealthDot';
-import { RoleSwitcher } from '@/components/shell/RoleSwitcher';
 
 /**
- * The console frame: a slim top bar (brand + case selector + role + health), a horizontal tab strip
- * below it for navigating the case interior, and the routed page in the content region. The old left
- * nav bar is gone — the case presents as card-based views reached from the tab strip. Calm navy + a
- * single blue accent; forensic colour appears only inside the pages, on tier/AI/integrity elements.
+ * The console frame: a slim top bar (brand + case selector) that stays FIXED while the content
+ * scrolls under it, a horizontal tab strip for navigating the case interior, and the routed page in
+ * the content region. Calm navy + a single blue accent; forensic colour appears only inside the
+ * pages, on tier/AI/integrity elements.
+ *
+ * The old API-health indicator and the Viewer/Investigator dev toggle were removed from the bar; the
+ * role is now a fixed config constant (see RoleContext / app/config). The brand mark is the QAIF
+ * logo figure (cropped to just the detective — the full lockup carries a stacked wordmark).
  */
 export function AppShell() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      {/* Top bar — brand corner, case selector, role, health. */}
-      <header className="flex shrink-0 items-center gap-4 border-b border-border bg-surface-2 px-6 py-2.5">
+      {/* Top bar — sticky: it stays pinned to the top while the content region scrolls under it. */}
+      <header className="sticky top-0 z-40 flex shrink-0 items-center gap-4 border-b border-border bg-surface-2 px-6 py-2.5">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-inner">
-            <ShieldCheck className="size-[18px]" aria-hidden />
-          </span>
+          <Logo variant="mark" className="size-8" />
           <span className="flex flex-col leading-tight">
             <span className="text-body-lg font-bold tracking-tight text-foreground">QAIF</span>
             <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -31,8 +31,6 @@ export function AppShell() {
         <div className="mx-2 h-8 w-px bg-border" aria-hidden />
         <CaseSelector />
         <div className="flex-1" />
-        <RoleSwitcher />
-        <HealthDot />
       </header>
 
       {/* Primary navigation — the horizontal tab strip that replaced the left nav. */}

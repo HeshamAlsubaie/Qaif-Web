@@ -1,25 +1,20 @@
 /**
- * Acting-role state. Holds the role the user is currently acting as (Viewer | Investigator),
- * persisted to localStorage so a reload keeps it. This is the ONE source of truth for the role: it
- * drives BOTH the IAM header sent on writes (via {@link ../api/identity.roleHeaders}) AND whether the
- * UI shows write actions at all. The default is normally Viewer (fail-closed), but is TEMPORARILY
- * Investigator while the landing role switcher is disabled (see {@link DEFAULT_ROLE}) — otherwise a
- * fresh user, unable to switch roles, could never open a case. The backend gate is unchanged.
+ * Acting-role state — the ONE source of truth for the role. It drives BOTH the IAM header sent on
+ * writes (via {@link ../api/identity.roleHeaders}) AND whether the UI shows write actions at all.
  *
- * This is a Stage-4 STAND-IN for real auth: switching is a trivial dev toggle in the shell, not a
- * login. The backend still independently enforces the gate (Viewer → 403 on writes), so hiding the
- * actions here is UX honesty layered on real enforcement, never the boundary itself.
+ * The Viewer/Investigator dev toggle was removed from the shell, so the effective role is now sourced
+ * from the {@link EFFECTIVE_ROLE} config constant (fixed to Investigator) rather than a UI toggle /
+ * localStorage — otherwise a stale ``Viewer`` from a prior session would silently kill every write.
+ * ``setRole`` is kept so the context shape and the IAM seam are unchanged (Stage-5 auth swaps the
+ * source again without touching call sites); nothing in the UI calls it while the toggle is gone.
+ *
+ * This is still a STAND-IN for real auth: the backend independently enforces the gate (Viewer → 403
+ * on writes), so this is UX layered on real enforcement, never the boundary itself.
  */
 import * as React from 'react';
 
 import type { Role } from '@/api/identity';
-
-const STORAGE_KEY = 'qaif.actingRole';
-// TEMPORARY: default Investigator while the landing role switcher is disabled; revert to Viewer
-// (fail-closed) when IAM/the switcher is re-enabled. The landing switcher is how a Viewer becomes an
-// Investigator, and a Viewer cannot open a case — with that switcher hidden, a Viewer default would
-// dead-end every write. The backend gate is UNCHANGED; this only flips the frontend default.
-const DEFAULT_ROLE: Role = 'Investigator';
+import { EFFECTIVE_ROLE } from '@/app/config';
 
 interface RoleContextValue {
   role: Role;
@@ -30,26 +25,12 @@ interface RoleContextValue {
 
 const RoleContext = React.createContext<RoleContextValue | null>(null);
 
-function readStored(): Role {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw === 'Investigator' ? 'Investigator' : DEFAULT_ROLE;
-  } catch {
-    return DEFAULT_ROLE;
-  }
-}
-
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRoleState] = React.useState<Role>(readStored);
+  // Sourced from the config constant, not a toggle: the effective role is fixed to Investigator so
+  // Investigator-only actions stay reachable with the switcher removed.
+  const [role, setRoleState] = React.useState<Role>(EFFECTIVE_ROLE);
 
-  const setRole = React.useCallback((next: Role) => {
-    setRoleState(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // Persistence is a convenience, not a requirement.
-    }
-  }, []);
+  const setRole = React.useCallback((next: Role) => setRoleState(next), []);
 
   const value = React.useMemo(
     () => ({ role, setRole, canWrite: role === 'Investigator' }),

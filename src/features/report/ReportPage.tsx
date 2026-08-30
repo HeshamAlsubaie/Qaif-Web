@@ -1,18 +1,47 @@
-import { Download, FileText, Fingerprint, ShieldCheck } from 'lucide-react';
+import { Download, FileDown, FileText, Fingerprint, Loader2, ShieldCheck } from 'lucide-react';
 import * as React from 'react';
 
+import { fetchReportPdf } from '@/api/endpoints';
 import { useReport } from '@/api/queries';
 import { CaseScoped } from '@/components/common/CaseScoped';
 import { QueryBoundary } from '@/components/common/QueryBoundary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { describeApiError } from '@/lib/apiError';
 import { type ReportResponse } from '@/types/api';
+
+/** Download the server-rendered PDF exhibit: GET the blob, then trigger a browser file download. */
+function useReportPdfDownload(caseId: number) {
+  const [downloading, setDownloading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const download = React.useCallback(async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      const { blob, filename } = await fetchReportPdf(caseId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(describeApiError(err));
+    } finally {
+      setDownloading(false);
+    }
+  }, [caseId]);
+  return { download, downloading, error };
+}
 
 function asRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
 }
 
 function ReportView({ data, caseId }: { data: ReportResponse; caseId: number }) {
+  const pdf = useReportPdfDownload(caseId);
   const integrity = asRecord(data.integrity);
   const report = asRecord(data.report);
   const statistics = asRecord(report.statistics);
@@ -37,10 +66,20 @@ function ReportView({ data, caseId }: { data: ReportResponse; caseId: number }) 
           <ShieldCheck className="size-5 text-integrity-verified" aria-hidden />
           <CardTitle>Report available</CardTitle>
         </div>
-        <Button size="sm" onClick={downloadJson}>
-          <Download aria-hidden />
-          Download JSON
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={() => void pdf.download()} disabled={pdf.downloading}>
+            {pdf.downloading ? (
+              <Loader2 className="animate-spin" aria-hidden />
+            ) : (
+              <FileDown aria-hidden />
+            )}
+            {pdf.downloading ? 'Preparing PDF…' : 'Download PDF'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={downloadJson}>
+            <Download aria-hidden />
+            Download JSON
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -75,10 +114,16 @@ function ReportView({ data, caseId }: { data: ReportResponse; caseId: number }) 
           </span>
         </div>
 
+        {pdf.error && (
+          <p className="text-caption text-integrity-broken">Could not download the PDF: {pdf.error}</p>
+        )}
+
         <p className="text-caption text-muted-foreground">
           This JSON is the <span className="text-foreground">canonical record-of-record</span>. The
-          court-facing PDF is derived from it by the backend report module (unit 6.1); a rendered
-          PDF download will be wired here in a later pass.
+          court-facing <span className="text-foreground">PDF exhibit</span> is rendered server-side
+          from it (unit 6.1) and downloads straight to your device — a cover page, the tier-separated
+          findings, evidence &amp; custody, timeline, and a self-verifying integrity hash. AI
+          suggestions and the analyst board are excluded from the exhibit by design.
         </p>
       </CardContent>
     </Card>

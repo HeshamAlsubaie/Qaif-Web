@@ -3,13 +3,20 @@
  * case artifact (evidence / finding / entity) into a board PIN (a reference, never a copy).
  *
  * The board is a CLIENT-ONLY thinking layer: it references evidence that already exists (by a stable
- * `refId`) and stores the investigator's arrangement, groups, notes, and hypothesis links in the
- * browser, keyed by case id. It NEVER writes to the backend, never seals evidence, never touches
- * custody — nothing here calls an API. A future backend-persisted board is out of scope.
+ * `refId`) and stores the investigator's arrangement, groups, notes, connectors, free-drawings,
+ * shapes, icons, and text labels in the browser, keyed by case id. It NEVER writes to the backend,
+ * never seals evidence, never touches custody — nothing here calls an API. Every element below is the
+ * analyst's working hypothesis, not case state; a future backend-persisted board is out of scope.
  */
 import type { EvidenceItemResponse, FindingResponse, GraphNode, Tier } from '@/types/api';
 
 export type PinKind = 'evidence' | 'finding' | 'entity';
+
+/** A point in canvas coordinates (px within the sized canvas surface). */
+export interface Vec {
+  x: number;
+  y: number;
+}
 
 export interface PinField {
   label: string;
@@ -30,6 +37,8 @@ export interface BoardPin {
   fields: PinField[];
   x: number;
   y: number;
+  /** Stacking order (bring-forward / send-back). Optional for boards saved before z existed. */
+  z?: number;
   /** The investigator's free-text annotation on this pin (working note, not case data). */
   note?: string;
 }
@@ -50,14 +59,73 @@ export interface BoardNote {
   text: string;
   x: number;
   y: number;
+  z?: number;
 }
 
-/** A hand-drawn hypothesis link between two pins — the analyst's reasoning, NOT a case relationship. */
+/**
+ * A DIRECTED connector between two pins — the analyst's hypothesis about a relationship
+ * ("exfiltrated to", "same operator", "occurred before"). It renders from → to with an arrowhead and
+ * an editable label. It is NOT a case-graph edge and is never written to correlation or custody.
+ */
 export interface BoardLink {
   id: string;
   from: string;
   to: string;
   label?: string;
+  z?: number;
+}
+
+export type ShapeKind = 'box' | 'circle' | 'arrow';
+
+/** A shape used to ring / highlight a region — box, circle, or a standalone arrow. */
+export interface BoardShape {
+  id: string;
+  shape: ShapeKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z: number;
+}
+
+/** A free-hand ink stroke — annotate freely, not anchored to any pin. */
+export interface BoardDrawing {
+  id: string;
+  points: Vec[];
+  z: number;
+}
+
+/** The small palette of marker/flag icons the analyst can drop to tag elements. */
+export const BOARD_ICON_NAMES = [
+  'flag',
+  'star',
+  'alert',
+  'target',
+  'key',
+  'skull',
+  'eye',
+  'bookmark',
+] as const;
+export type IconName = (typeof BOARD_ICON_NAMES)[number];
+
+/** A dropped icon/marker. `name` keys into the palette; the glyph is chosen in the view. */
+export interface BoardIcon {
+  id: string;
+  name: IconName;
+  x: number;
+  y: number;
+  size: number;
+  z: number;
+}
+
+/** A light inline text label on the canvas — distinct from the heavier sticky note. */
+export interface BoardText {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  z: number;
 }
 
 export interface BoardState {
@@ -65,13 +133,26 @@ export interface BoardState {
   groups: BoardGroup[];
   notes: BoardNote[];
   links: BoardLink[];
+  shapes: BoardShape[];
+  drawings: BoardDrawing[];
+  icons: BoardIcon[];
+  texts: BoardText[];
 }
 
 /** A pin's content before it is placed — the board assigns id + position on add. */
-export type PinSeed = Omit<BoardPin, 'id' | 'x' | 'y' | 'note'>;
+export type PinSeed = Omit<BoardPin, 'id' | 'x' | 'y' | 'z' | 'note'>;
 
 export function emptyBoard(): BoardState {
-  return { pins: [], groups: [], notes: [], links: [] };
+  return {
+    pins: [],
+    groups: [],
+    notes: [],
+    links: [],
+    shapes: [],
+    drawings: [],
+    icons: [],
+    texts: [],
+  };
 }
 
 // -- ids ---------------------------------------------------------------------
@@ -89,34 +170,75 @@ export function newId(prefix: string): string {
   return `${prefix}_${fallbackCounter}_${performance.now().toString(36)}`;
 }
 
+// -- stacking order (z) ------------------------------------------------------
+
+/** Default stacking band per element kind, so a board saved before `z` still layers sensibly. */
+export const Z_DEFAULT = {
+  drawing: 10,
+  shape: 20,
+  link: 30,
+  note: 50,
+  pin: 50,
+  icon: 60,
+  text: 60,
+} as const;
+
+/** Every element's effective z (its own, or the default for its band). */
+function allZ(board: BoardState): number[] {
+  return [
+    ...board.drawings.map((d) => d.z ?? Z_DEFAULT.drawing),
+    ...board.shapes.map((s) => s.z ?? Z_DEFAULT.shape),
+    ...board.links.map((l) => l.z ?? Z_DEFAULT.link),
+    ...board.notes.map((n) => n.z ?? Z_DEFAULT.note),
+    ...board.pins.map((p) => p.z ?? Z_DEFAULT.pin),
+    ...board.icons.map((i) => i.z ?? Z_DEFAULT.icon),
+    ...board.texts.map((t) => t.z ?? Z_DEFAULT.text),
+  ];
+}
+
+/** Next z above everything — a freshly added or brought-forward element sits on top. */
+export function nextZ(board: BoardState): number {
+  const zs = allZ(board);
+  return (zs.length > 0 ? Math.max(...zs) : Z_DEFAULT.pin) + 1;
+}
+
+/** Next z below everything — for send-to-back. */
+export function backZ(board: BoardState): number {
+  const zs = allZ(board);
+  return (zs.length > 0 ? Math.min(...zs) : 0) - 1;
+}
+
 // -- persistence (client-only; localStorage keyed per case) ------------------
 
 const storageKey = (caseId: number): string => `qaif.board.${caseId}`;
 
-function isBoardState(value: unknown): value is BoardState {
-  if (value === null || typeof value !== 'object') return false;
-  const v = value as Record<string, unknown>;
-  return (
-    Array.isArray(v.pins) &&
-    Array.isArray(v.groups) &&
-    Array.isArray(v.notes) &&
-    Array.isArray(v.links)
-  );
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
 }
 
-/** Load a case's board from localStorage. Any corruption degrades to an empty board, never throws. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+/**
+ * Load a case's board from localStorage. Any corruption degrades to an empty board, never throws.
+ * Missing arrays (a board saved by an earlier version) default to empty, so old boards still open.
+ */
 export function loadBoard(caseId: number): BoardState {
   try {
     const raw = localStorage.getItem(storageKey(caseId));
     if (!raw) return emptyBoard();
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isBoardState(parsed)) return emptyBoard();
-    // Take only the known arrays, so a partial/older shape still loads cleanly.
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) return emptyBoard();
     return {
-      pins: parsed.pins,
-      groups: parsed.groups,
-      notes: parsed.notes,
-      links: parsed.links,
+      pins: asArray<BoardPin>(parsed.pins),
+      groups: asArray<BoardGroup>(parsed.groups),
+      notes: asArray<BoardNote>(parsed.notes),
+      links: asArray<BoardLink>(parsed.links),
+      shapes: asArray<BoardShape>(parsed.shapes),
+      drawings: asArray<BoardDrawing>(parsed.drawings),
+      icons: asArray<BoardIcon>(parsed.icons),
+      texts: asArray<BoardText>(parsed.texts),
     };
   } catch {
     return emptyBoard();

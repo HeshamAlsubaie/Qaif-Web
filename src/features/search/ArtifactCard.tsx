@@ -1,5 +1,6 @@
 import {
   CircleSlash,
+  Cloud,
   ShieldAlert,
   ShieldCheck,
   ShieldQuestion,
@@ -15,8 +16,13 @@ import type { LookupResponse } from '@/types/api';
 
 import { DetectedTypeBadge } from './IocResults';
 import {
+  ANONYMIZER_LABELS,
+  ANONYMIZER_ORDER,
+  cloudHostingDisplay,
   formatReputationValue,
   normalizeArtifact,
+  type AnonymizerState,
+  type CloudHosting,
   type NormalizedArtifact,
   type Verdict,
 } from './artifact';
@@ -80,6 +86,97 @@ function AnonymizerChip({ label }: { label: string }) {
       <ShieldAlert className="size-3.5 shrink-0" aria-hidden />
       {label}: YES
     </span>
+  );
+}
+
+// The three anonymizer states, each visually distinct so "unknown" (not checked) can NEVER be read
+// as a clean "NO": YES is a red flag, NO is a solid muted negative, and unknown is a DASHED muted
+// "no data" pill — the border style alone separates a checked negative from a missing check.
+const ANON_STATE_STYLE: Record<
+  AnonymizerState,
+  { icon: LucideIcon; className: string; text: string; title: string }
+> = {
+  yes: {
+    icon: ShieldAlert,
+    className: 'border-destructive/40 bg-destructive/10 text-destructive',
+    text: 'YES',
+    title: 'A source asserts this anonymizer',
+  },
+  no: {
+    icon: ShieldCheck,
+    className: 'border-border bg-surface-2 text-muted-foreground',
+    text: 'NO',
+    title: 'A source checked and reported this as false',
+  },
+  unknown: {
+    icon: ShieldQuestion,
+    className: 'border-dashed border-border bg-transparent text-muted-foreground',
+    text: 'unknown',
+    title: 'No source reported this — not checked, NOT a clean result',
+  },
+};
+
+/** An ALWAYS-visible VPN/Proxy/Tor row: real YES/NO when a source has it, explicit unknown when not. */
+function AnonymizerStatusPill({ label, state }: { label: string; state: AnonymizerState }) {
+  const style = ANON_STATE_STYLE[state];
+  const Icon = style.icon;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-caption font-semibold leading-none',
+        style.className,
+      )}
+      title={style.title}
+    >
+      <Icon className="size-3.5 shrink-0" aria-hidden />
+      {label}: {style.text}
+    </span>
+  );
+}
+
+/**
+ * The ALWAYS-visible Cloud / Hosting field for an IP: the mapped cloud provider (with the raw isp in
+ * muted parens for transparency), or the raw isp for a non-cloud IP, or an explicit "unknown" when no
+ * source returned metadata. `usage_type` follows as its own row when present — the hosting-type
+ * signal. Mapped only from real metadata; never a fabricated provider.
+ */
+function CloudHostingRows({ cloud }: { cloud: CloudHosting }) {
+  const known = cloud.provider !== null;
+  const hasData = cloud.provider !== null || cloud.isp !== null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="inline-flex items-center gap-1.5 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
+          <Cloud className="size-3.5 shrink-0" aria-hidden />
+          Cloud / Hosting
+        </span>
+        {hasData ? (
+          <span className="text-caption text-foreground">
+            {cloudHostingDisplay(cloud)}
+            {known && cloud.isp && (
+              <span className="ml-1.5 font-mono text-micro text-muted-foreground">
+                ({cloud.isp})
+              </span>
+            )}
+          </span>
+        ) : (
+          <span
+            className="text-caption italic text-muted-foreground"
+            title="No source returned ISP / hosting metadata — not checked, NOT a fabricated provider"
+          >
+            unknown
+          </span>
+        )}
+      </div>
+      {cloud.usageType && (
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
+            Usage type
+          </span>
+          <span className="text-caption text-foreground">{cloud.usageType}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -261,6 +358,10 @@ function ArtifactSections({ artifact }: { artifact: NormalizedArtifact }) {
 
 export function ArtifactCard({ data }: { data: LookupResponse }) {
   const artifact = normalizeArtifact(data);
+  // VPN/Proxy/Tor are ALWAYS shown for an IP — present-and-honest (real YES/NO, or explicit
+  // unknown), never present-only-hidden and never a fabricated NO. For non-IPs (no anonymizer
+  // concept) the old present-only YES chips stay.
+  const isIp = data.detected_type === 'ip';
 
   const header = (
     <div className="flex flex-col gap-3">
@@ -273,14 +374,22 @@ export function ArtifactCard({ data }: { data: LookupResponse }) {
         </div>
         <ExternalClaimBadge className="shrink-0" />
       </div>
-      {(artifact.verdict || artifact.anonymizers.length > 0) && (
+      {(artifact.verdict || isIp || artifact.anonymizers.length > 0) && (
         <div className="flex flex-wrap items-center gap-2">
           {artifact.verdict && <VerdictPill verdict={artifact.verdict} />}
-          {artifact.anonymizers.map((a) => (
-            <AnonymizerChip key={a.kind} label={a.label} />
-          ))}
+          {isIp
+            ? ANONYMIZER_ORDER.map((kind) => (
+                <AnonymizerStatusPill
+                  key={kind}
+                  label={ANONYMIZER_LABELS[kind]}
+                  state={artifact.anonymizerStatus[kind]}
+                />
+              ))
+            : artifact.anonymizers.map((a) => <AnonymizerChip key={a.kind} label={a.label} />)}
         </div>
       )}
+      {/* Cloud / Hosting — always visible for an IP, derived from real isp/usage_type metadata. */}
+      {isIp && <CloudHostingRows cloud={artifact.cloudHosting} />}
     </div>
   );
 

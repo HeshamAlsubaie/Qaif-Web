@@ -26,7 +26,6 @@ import { CryptoFlowSummary } from './CryptoFlowSummary';
 import { CryptoGraphView } from './CryptoGraphView';
 import { CryptoHopFlow } from './CryptoHopFlow';
 import { CryptoOriginCard } from './CryptoOriginCard';
-import { RefreshLiveNotice } from './RefreshLiveNotice';
 
 type CryptoMode = 'story' | 'graph';
 
@@ -71,7 +70,6 @@ function ModeToggle({ mode, onChange }: { mode: CryptoMode; onChange: (m: Crypto
 function CryptoStory({ data }: { data: CryptoTraceResponse }) {
   return (
     <div className="flex flex-col gap-5">
-      <RefreshLiveNotice />
       {data.origin && <CryptoOriginCard origin={data.origin} />}
       <CryptoFlowSummary summary={data.summary} />
       <CryptoHopFlow data={data} />

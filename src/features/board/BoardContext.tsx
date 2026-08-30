@@ -15,6 +15,7 @@ import {
   emptyBoard,
   loadBoard,
   newId,
+  nextZ,
   saveBoard,
   type BoardState,
   type PinSeed,
@@ -74,6 +75,7 @@ export function BoardProvider({ children }: { children: React.ReactNode }) {
         id: newId('pin'),
         x: 64 + (n % 6) * 40,
         y: 72 + (n % 6) * 40,
+        z: nextZ(e.board),
       };
       return { ...e, board: { ...e.board, pins: [...e.board.pins, placed] } };
     });

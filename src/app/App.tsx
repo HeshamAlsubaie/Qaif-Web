@@ -22,7 +22,7 @@ import { OverviewPage } from '@/features/overview/OverviewPage';
 import { StageCPage } from '@/features/placeholder/StageCPage';
 import { ReportPage } from '@/features/report/ReportPage';
 import { SearchPage } from '@/features/search/SearchPage';
-import { SuggestionsPage } from '@/features/suggestions/SuggestionsPage';
+import { ShadowAssistantPage } from '@/features/assistant/ShadowAssistantPage';
 import { ThreatsPage } from '@/features/threats/ThreatsPage';
 import { TimelinePage } from '@/features/timeline/TimelinePage';
 
@@ -38,7 +38,7 @@ const PAGES: Record<string, ReactElement> = {
   '/timeline': <TimelinePage />,
   '/board': <BoardPage />,
   '/evidence': <EvidencePage />,
-  '/suggestions': <SuggestionsPage />,
+  '/assistant': <ShadowAssistantPage />,
   '/report': <ReportPage />,
 };
 

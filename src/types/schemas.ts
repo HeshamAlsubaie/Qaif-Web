@@ -214,6 +214,17 @@ export const suggestionsResponseSchema = z.object({
   items: z.array(suggestionResponseSchema),
 });
 
+/** One READ-ONLY Shadow-Assistant answer. `status` is 'ok' or 'unavailable' (clean degrade). */
+export const assistantResponseSchema = z.object({
+  case_id: z.number().int(),
+  status: z.string(),
+  answer: z.string(),
+  provider: z.string().nullable(),
+  model: z.string().nullable(),
+  grounded: z.boolean(),
+  disclaimer: z.string(),
+});
+
 // -- the one write: review --------------------------------------------------
 
 export const reviewRequestSchema = z.object({

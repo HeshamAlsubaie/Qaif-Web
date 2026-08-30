@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 
-import { useCase } from '@/api/queries';
 import { useSelectedCase } from '@/app/CaseContext';
 import { cn } from '@/lib/utils';
 import { NAV_SECTIONS } from '@/components/shell/navConfig';
@@ -11,14 +10,9 @@ import { NAV_SECTIONS } from '@/components/shell/navConfig';
  * case interior is a set of card-based views; this strip is how you move between them. Search-first:
  * with no case open only the case-INDEPENDENT tools show; case-scoped views appear once a case is
  * loaded. A thin divider marks each new nav group so the strip stays grouped without headings.
- *
- * The AI Suggestions tab carries the pending-review count in violet — a genuine AI-quarantine signal
- * (R6), not chrome — pulled from the case header counts when a case is loaded.
  */
 export function CaseTabs() {
   const { caseId } = useSelectedCase();
-  const caseQuery = useCase(caseId);
-  const aiCount = caseQuery.data?.counts.ai_suggestions ?? 0;
 
   const sections = caseId === null ? NAV_SECTIONS.filter((s) => !s.caseOnly) : NAV_SECTIONS;
 
@@ -51,14 +45,6 @@ export function CaseTabs() {
                 )}
                 <section.icon className="size-4 shrink-0" aria-hidden />
                 <span>{section.label}</span>
-                {section.path === '/suggestions' && aiCount > 0 && (
-                  <span
-                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-ai/50 bg-ai/15 px-1.5 text-[10px] font-bold tabular-nums text-ai"
-                    title="AI suggestions pending review"
-                  >
-                    {aiCount}
-                  </span>
-                )}
               </>
             )}
           </NavLink>

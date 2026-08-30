@@ -7,6 +7,7 @@
 import type { z } from 'zod';
 
 import type {
+  assistantResponseSchema,
   caseCountsSchema,
   caseSummaryResponseSchema,
   correlationResponseSchema,
@@ -87,6 +88,7 @@ export type CryptoTraceResponse = z.infer<typeof cryptoTraceResponseSchema>;
 
 export type SuggestionResponse = z.infer<typeof suggestionResponseSchema>;
 export type SuggestionsResponse = z.infer<typeof suggestionsResponseSchema>;
+export type AssistantResponse = z.infer<typeof assistantResponseSchema>;
 
 export type ReviewRequest = z.infer<typeof reviewRequestSchema>;
 export type ReviewResponse = z.infer<typeof reviewResponseSchema>;

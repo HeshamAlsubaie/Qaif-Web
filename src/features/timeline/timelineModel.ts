@@ -254,37 +254,84 @@ export function eventKindLabel(kind: string): string {
   );
 }
 
+// -- plain-table projection (presentation change: same data, tabular shape) ----------------------
+
 /**
- * Tier is NOT a field on a timeline event. The only honest tier signal is the event KIND itself:
- * a `probabilistic_finding` is probabilistic; a `finding` is confirmed. For every other kind we
- * return null rather than borrow a tier from a linked entity — that would be fabrication.
+ * An event's placement is PROVISIONAL when it rests on an assumption we must flag — an assumed
+ * timezone or a skewed clock. It is still placed (given a UTC instant), just not a confirmed one.
+ * This is the same distinction the vertical view drew with a hollow/dashed marker; in the table it
+ * becomes the Time-basis column value.
  */
-export function eventTier(kind: string): Tier | null {
-  if (kind === 'finding') return 'confirmed';
-  if (kind === 'probabilistic_finding') return 'probabilistic';
-  return null;
+export function isProvisional(node: TimelineEventNode): boolean {
+  return node.kinds.includes('assumed_tz') || node.kinds.includes('clock_skew');
 }
 
-/** Copy for each cluster reason — what the band asserts, and (critically) what it does NOT. */
-export function clusterReasonCopy(reason: ClusterReason): { title: string; blurb: string } {
-  switch (reason) {
-    case 'tie':
-      return {
-        title: 'Co-occurring · same instant',
-        blurb:
-          'These events share an identical UTC instant at the finest recorded precision. That is co-occurrence — neither is asserted to precede the other.',
-      };
-    case 'indeterminate':
-      return {
-        title: 'Order indeterminate',
-        blurb:
-          'These events are too coarse (overlapping precision / clock skew) to order reliably. Their relative sequence is NOT established.',
-      };
-    case 'mixed':
-      return {
-        title: 'Co-occurring · order indeterminate',
-        blurb:
-          'These events cannot be reliably ordered — some share an instant, some overlap in precision. Their relative sequence is NOT established.',
-      };
+/** The Time-basis column value: a provisional instant must still be flagged as such, in text. */
+export function timeBasis(node: TimelineEventNode): 'CONFIRMED' | 'PROVISIONAL' {
+  return isProvisional(node) ? 'PROVISIONAL' : 'CONFIRMED';
+}
+
+/** Plain-text ambiguity labels — no color, no badge, just the word(s). `—` when a row has none. */
+export const AMBIGUITY_TEXT: Record<AmbiguityKind, string> = {
+  tie: 'TIE',
+  precision_overlap: 'INDETERMINATE ORDER',
+  assumed_tz: 'ASSUMED TZ',
+  clock_skew: 'CLOCK SKEW',
+};
+
+// Order-relation kinds (tie / indeterminate order) first — they carry the critical non-order
+// assertion — then the per-event provisional markers.
+const AMBIGUITY_TEXT_ORDER: readonly AmbiguityKind[] = [
+  'tie',
+  'precision_overlap',
+  'assumed_tz',
+  'clock_skew',
+];
+
+/** The plain-text ambiguity label(s) that apply to a row, ordered; empty means "no ambiguity". */
+export function rowAmbiguityLabels(node: TimelineEventNode): string[] {
+  return AMBIGUITY_TEXT_ORDER.filter((k) => node.kinds.includes(k)).map((k) => AMBIGUITY_TEXT[k]);
+}
+
+/**
+ * One table row. `groupId` binds the rows of a co-occurring / indeterminate-order cluster into ONE
+ * unordered set: within a group, `positionInGroup` is a stable render index that carries NO temporal
+ * meaning (the bracket + the INDETERMINATE ORDER / TIE label assert that). Singletons have a null
+ * group and stand alone.
+ */
+export interface TimelineRow {
+  node: TimelineEventNode;
+  groupId: string | null;
+  groupSize: number;
+  positionInGroup: number;
+  reason: ClusterReason | null;
+}
+
+/**
+ * Flatten the UTC-ordered layout into table rows WITHOUT inventing any order the backend didn't
+ * establish: singletons stay singletons; each cluster's members share one group id so the table can
+ * bracket them as an unordered set. Row order follows the layout (UTC on the slot axis); a cluster's
+ * internal member order is the model's stable, meaning-free order — never a sequence.
+ */
+export function toTimelineRows(layout: TimelineLayout): TimelineRow[] {
+  const rows: TimelineRow[] = [];
+  let group = 0;
+  for (const slot of layout.slots) {
+    if (slot.kind === 'single') {
+      rows.push({ node: slot.node, groupId: null, groupSize: 1, positionInGroup: 0, reason: null });
+      continue;
+    }
+    group += 1;
+    const groupId = `G${group}`;
+    slot.nodes.forEach((node, i) => {
+      rows.push({
+        node,
+        groupId,
+        groupSize: slot.nodes.length,
+        positionInGroup: i,
+        reason: slot.reason,
+      });
+    });
   }
+  return rows;
 }

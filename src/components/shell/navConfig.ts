@@ -62,6 +62,6 @@ export const NAV_SECTIONS: NavSection[] = [
     stageC: false,
     caseOnly: true,
   },
-  { path: '/suggestions', label: 'AI Suggestions', icon: Bot, stageC: false, caseOnly: true },
+  { path: '/assistant', label: 'Shadow Assistant', icon: Bot, stageC: false, caseOnly: true },
   { path: '/report', label: 'Report', icon: FileText, stageC: false, caseOnly: true },
 ];

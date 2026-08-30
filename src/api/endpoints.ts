@@ -5,10 +5,11 @@
  * free. The writes (review, openCase, addToCase) mirror the backend's state-changing routes; each
  * carries the Investigator IAM headers, since the backend fail-closes to a read-only Viewer without.
  */
-import { apiRequest } from '@/api/client';
+import { ApiError, apiRequest, getApiBaseUrl } from '@/api/client';
 import { roleHeaders, type Role } from '@/api/identity';
 import {
   addToCaseResponseSchema,
+  assistantResponseSchema,
   caseSummaryResponseSchema,
   correlationsResponseSchema,
   cryptoTraceResponseSchema,
@@ -31,6 +32,7 @@ import {
 import type {
   AddToCaseRequest,
   AddToCaseResponse,
+  AssistantResponse,
   CaseSummaryResponse,
   CorrelationsResponse,
   CryptoTraceResponse,
@@ -102,6 +104,60 @@ export function getSuggestions(caseId: number, signal?: AbortSignal): Promise<Su
 
 export function getReport(caseId: number, signal?: AbortSignal): Promise<ReportResponse> {
   return apiRequest(`/cases/${caseId}/report`, reportResponseSchema, { signal });
+}
+
+/**
+ * READ-ONLY Shadow Assistant: ask ONE question about a case. A GET (never a write) — it reads the
+ * case and calls the wired LLM server-side, returning a completion. `history` is the client's
+ * EPHEMERAL prior turns (JSON), sent so the model has context; nothing is persisted server-side and
+ * nothing is audited. It writes NOTHING to the backend and calls NO write route.
+ */
+export function askAssistant(
+  caseId: number,
+  question: string,
+  history?: { role: string; content: string }[],
+  signal?: AbortSignal,
+): Promise<AssistantResponse> {
+  const params = new URLSearchParams({ q: question });
+  if (history && history.length > 0) params.set('history', JSON.stringify(history));
+  return apiRequest(`/cases/${caseId}/assistant?${params.toString()}`, assistantResponseSchema, {
+    signal,
+  });
+}
+
+/**
+ * Fetch the case report as a PDF exhibit (a GET, read-only) and return the blob + the server's
+ * download filename. The Report view turns this into a direct browser download. No write route.
+ */
+export async function fetchReportPdf(
+  caseId: number,
+  signal?: AbortSignal,
+): Promise<{ blob: Blob; filename: string }> {
+  const url = `${getApiBaseUrl()}/cases/${caseId}/report?format=pdf`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { Accept: 'application/pdf' },
+      ...(signal ? { signal } : {}),
+    });
+  } catch (cause) {
+    throw new ApiError(`Network request to ${url} failed`, 'network', undefined, cause);
+  }
+  if (!response.ok) {
+    throw new ApiError(`Report PDF request failed (${response.status})`, 'http', response.status);
+  }
+  const blob = await response.blob();
+  const filename =
+    parseContentDispositionFilename(response.headers.get('content-disposition')) ??
+    `QAIF-case-${caseId}-report.pdf`;
+  return { blob, filename };
+}
+
+/** Pull the quoted `filename="…"` out of a Content-Disposition header (or null). */
+function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) return null;
+  const match = /filename="([^"]+)"/.exec(header);
+  return match ? match[1] : null;
 }
 
 /**

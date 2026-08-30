@@ -4,7 +4,17 @@
  * move/annotate/group/link PINS that reference existing evidence; nothing here calls an API, seals
  * evidence, or writes custody. The board is a thinking layer, and these are its edits.
  */
-import { emptyBoard, newId, type BoardLink, type BoardState } from './boardModel';
+import {
+  backZ,
+  emptyBoard,
+  newId,
+  nextZ,
+  type BoardLink,
+  type BoardState,
+  type IconName,
+  type ShapeKind,
+  type Vec,
+} from './boardModel';
 
 // -- pins --------------------------------------------------------------------
 
@@ -106,6 +116,140 @@ export function setLinkLabel(board: BoardState, id: string, label: string): Boar
 
 export function removeLink(board: BoardState, id: string): BoardState {
   return { ...board, links: board.links.filter((l) => l.id !== id) };
+}
+
+// -- shapes (box / circle / arrow) -------------------------------------------
+
+export function addShape(
+  board: BoardState,
+  shape: ShapeKind,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): BoardState {
+  const el = { id: newId('shape'), shape, x, y, w: Math.max(8, w), h: Math.max(8, h), z: nextZ(board) };
+  return { ...board, shapes: [...board.shapes, el] };
+}
+
+export function resizeShape(board: BoardState, id: string, w: number, h: number): BoardState {
+  return {
+    ...board,
+    shapes: board.shapes.map((s) =>
+      s.id === id ? { ...s, w: Math.max(8, w), h: Math.max(8, h) } : s,
+    ),
+  };
+}
+
+// -- free-hand drawings ------------------------------------------------------
+
+export function addDrawing(board: BoardState, points: Vec[]): BoardState {
+  const el = { id: newId('draw'), points, z: nextZ(board) };
+  return { ...board, drawings: [...board.drawings, el] };
+}
+
+// -- icons / markers ---------------------------------------------------------
+
+export function addIcon(board: BoardState, name: IconName, x: number, y: number): BoardState {
+  const el = { id: newId('icon'), name, x, y, size: 28, z: nextZ(board) };
+  return { ...board, icons: [...board.icons, el] };
+}
+
+export function resizeIcon(board: BoardState, id: string, size: number): BoardState {
+  return {
+    ...board,
+    icons: board.icons.map((i) => (i.id === id ? { ...i, size: Math.max(14, size) } : i)),
+  };
+}
+
+// -- text labels -------------------------------------------------------------
+
+export function addText(board: BoardState, x: number, y: number): BoardState {
+  const el = { id: newId('text'), text: '', x, y, fontSize: 16, z: nextZ(board) };
+  return { ...board, texts: [...board.texts, el] };
+}
+
+export function setTextValue(board: BoardState, id: string, text: string): BoardState {
+  return { ...board, texts: board.texts.map((t) => (t.id === id ? { ...t, text } : t)) };
+}
+
+export function resizeText(board: BoardState, id: string, fontSize: number): BoardState {
+  return {
+    ...board,
+    texts: board.texts.map((t) =>
+      t.id === id ? { ...t, fontSize: Math.min(96, Math.max(10, fontSize)) } : t,
+    ),
+  };
+}
+
+// -- generic selection ops (move / delete / z-order across every kind) -------
+
+/** Translate every selected element by (dx, dy). Drawings translate all their points. */
+export function moveElementsBy(
+  board: BoardState,
+  ids: ReadonlySet<string>,
+  dx: number,
+  dy: number,
+): BoardState {
+  const shift = <T extends { id: string; x: number; y: number }>(o: T): T =>
+    ids.has(o.id) ? { ...o, x: Math.max(0, o.x + dx), y: Math.max(0, o.y + dy) } : o;
+  return {
+    ...board,
+    pins: board.pins.map(shift),
+    groups: board.groups.map(shift),
+    notes: board.notes.map(shift),
+    shapes: board.shapes.map(shift),
+    icons: board.icons.map(shift),
+    texts: board.texts.map(shift),
+    drawings: board.drawings.map((d) =>
+      ids.has(d.id)
+        ? { ...d, points: d.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) }
+        : d,
+    ),
+  };
+}
+
+/** Delete every selected element; also prunes connectors whose pin endpoints were removed. */
+export function removeElements(board: BoardState, ids: ReadonlySet<string>): BoardState {
+  const removedPins = new Set(board.pins.filter((p) => ids.has(p.id)).map((p) => p.id));
+  return {
+    ...board,
+    pins: board.pins.filter((p) => !ids.has(p.id)),
+    groups: board.groups.filter((g) => !ids.has(g.id)),
+    notes: board.notes.filter((n) => !ids.has(n.id)),
+    shapes: board.shapes.filter((s) => !ids.has(s.id)),
+    icons: board.icons.filter((i) => !ids.has(i.id)),
+    texts: board.texts.filter((t) => !ids.has(t.id)),
+    drawings: board.drawings.filter((d) => !ids.has(d.id)),
+    links: board.links.filter(
+      (l) => !ids.has(l.id) && !removedPins.has(l.from) && !removedPins.has(l.to),
+    ),
+  };
+}
+
+function setZ(board: BoardState, ids: ReadonlySet<string>, z: number): BoardState {
+  const bump = <T extends { id: string; z?: number }>(o: T): T =>
+    ids.has(o.id) ? { ...o, z } : o;
+  return {
+    ...board,
+    pins: board.pins.map(bump),
+    notes: board.notes.map(bump),
+    links: board.links.map(bump),
+    shapes: board.shapes.map(bump),
+    icons: board.icons.map(bump),
+    texts: board.texts.map(bump),
+    drawings: board.drawings.map(bump),
+  };
+}
+
+/** Bring the selection above everything else. */
+export function bringForward(board: BoardState, ids: ReadonlySet<string>): BoardState {
+  return setZ(board, ids, nextZ(board));
+}
+
+/** Send the selection behind everything else. */
+export function sendBackward(board: BoardState, ids: ReadonlySet<string>): BoardState {
+  return setZ(board, ids, backZ(board));
 }
 
 // -- whole board -------------------------------------------------------------

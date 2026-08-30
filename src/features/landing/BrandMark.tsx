@@ -1,17 +1,15 @@
-import { ShieldCheck } from 'lucide-react';
-
+import { Logo } from '@/components/common/Logo';
 import { cn } from '@/lib/utils';
 
 /**
- * The QAIF brand mark — the same shield + wordmark as the AppShell brand corner, kept consistent
- * across the bare, sidebar-free surfaces (the search-forward landing and the free-tool pages).
+ * The QAIF brand lockup for the bare, sidebar-free surfaces (the free-tool pages / ToolShell) — the
+ * same mark + "QAIF / Investigator Console" wordmark as the AppShell brand corner. The mark itself
+ * comes from the single {@link Logo} component (figure-only variant), so the logo lives in ONE place.
  */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      <span className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-inner">
-        <ShieldCheck className="size-[22px]" aria-hidden />
-      </span>
+      <Logo variant="mark" className="size-10" />
       <span className="flex flex-col leading-tight">
         <span className="text-h4 font-bold tracking-tight text-foreground">QAIF</span>
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">

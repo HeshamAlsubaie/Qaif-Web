@@ -22,6 +22,72 @@ export interface AnonymizerChip {
   label: string;
 }
 
+/**
+ * The three anonymizer flavours the IP card ALWAYS shows, and their honest three-state reading:
+ *   - 'yes'     — at least one source asserted this flag TRUE;
+ *   - 'no'      — a source asserted it and NONE said true (a real, checked negative);
+ *   - 'unknown' — NO source reported this flag at all (not checked — never a clean "NO").
+ * The distinction between 'no' and 'unknown' is the point: a missing check must never read as a
+ * clean result an investigator could clear the IP on.
+ */
+export const ANONYMIZER_ORDER = ['vpn', 'proxy', 'tor'] as const;
+export type AnonymizerKind = (typeof ANONYMIZER_ORDER)[number];
+export type AnonymizerState = 'yes' | 'no' | 'unknown';
+export type AnonymizerStatus = Record<AnonymizerKind, AnonymizerState>;
+
+export const ANONYMIZER_LABELS: Record<string, string> = {
+  vpn: 'VPN',
+  proxy: 'Proxy',
+  tor: 'Tor',
+};
+
+/**
+ * Cloud / hosting profile for the IP card, derived ONLY from real metadata (`isp` + `usage_type`).
+ * `provider` is a clean label ("AWS (Amazon)"…) ONLY when the raw `isp` string matches a known
+ * provider via {@link cloudProviderLabel} — a transparent display mapping of real data, never a
+ * guess. `isp` / `usageType` are the raw strings verbatim. All three are null when a source gave
+ * no metadata, so the card can show an honest "unknown" instead of a fabricated provider.
+ */
+export interface CloudHosting {
+  provider: string | null;
+  isp: string | null;
+  usageType: string | null;
+}
+
+// A TRANSPARENT substring→label mapping of the real `isp` string. First match wins; case-insensitive.
+// This is display normalization of real data (it renames what the source already said), not
+// enrichment — no lookup, no inference, no guess.
+const CLOUD_PROVIDER_MAP: readonly (readonly [string, string])[] = [
+  ['amazon', 'AWS (Amazon)'],
+  ['google', 'Google Cloud'],
+  ['microsoft', 'Azure (Microsoft)'],
+  ['azure', 'Azure (Microsoft)'],
+  ['oracle', 'Oracle Cloud'],
+  ['digitalocean', 'DigitalOcean'],
+  ['linode', 'Linode'],
+  ['ovh', 'OVH'],
+  ['hetzner', 'Hetzner'],
+  ['alibaba', 'Alibaba'],
+];
+
+/** The mapped cloud label when the raw `isp` matches a known provider, else null (non-cloud/unknown). */
+export function cloudProviderLabel(isp: string): string | null {
+  const lower = isp.toLowerCase();
+  for (const [needle, label] of CLOUD_PROVIDER_MAP) {
+    if (lower.includes(needle)) return label;
+  }
+  return null;
+}
+
+/**
+ * The Cloud/Hosting field value shown on the IP card: the mapped provider when the isp is a known
+ * cloud, else the raw isp verbatim, else "unknown". Always truthful — mapped only from real
+ * metadata. `usage_type` is presented as its own adjacent row, so it is not concatenated here.
+ */
+export function cloudHostingDisplay(c: CloudHosting): string {
+  return c.provider ?? c.isp ?? 'unknown';
+}
+
 export interface ReputationRow {
   name: string;
   value: number;
@@ -43,6 +109,10 @@ export interface DetectionsView {
 export interface NormalizedArtifact {
   verdict: Verdict | null;
   anonymizers: AnonymizerChip[];
+  /** Always-present three-state VPN/Proxy/Tor reading for the IP card (yes / no / unknown). */
+  anonymizerStatus: AnonymizerStatus;
+  /** Cloud/hosting profile derived from real `isp`/`usage_type` metadata (always shown on the IP card). */
+  cloudHosting: CloudHosting;
   reputation: ReputationRow[];
   metadata: MetadataRow[];
   families: string[];
@@ -96,14 +166,10 @@ function uniq(values: string[]): string[] {
   return [...new Set(values)];
 }
 
-const ANONYMIZER_LABELS: Record<string, string> = {
-  tor: 'Tor',
-  vpn: 'VPN',
-  proxy: 'Proxy',
-};
-
 // Metadata keys that are surfaced through their own dedicated sections, not the generic table.
-const METADATA_HANDLED_ELSEWHERE = new Set(['match_count', 'sample_ids']);
+// `isp`/`usage_type` drive the always-visible Cloud/Hosting + Usage-type rows, so they are pulled
+// out of the generic metadata table to avoid showing the same real value twice.
+const METADATA_HANDLED_ELSEWHERE = new Set(['match_count', 'sample_ids', 'isp', 'usage_type']);
 
 /**
  * Map a reputation reading to a badness score in [0,1] using only its numeric value and its own
@@ -178,16 +244,31 @@ export function normalizeArtifact(data: LookupResponse): NormalizedArtifact {
 
   // Anonymizer chips — only entries flagged true, deduped by kind (present-only, never "OFF").
   const anonByKind = new Map<string, AnonymizerChip>();
+  // Three-state per kind: collect EVERY asserted bool (true AND false) across all sources, so a
+  // source that checked and said "not vpn" reads as a real NO, and a kind no source reported reads
+  // as unknown — never a fabricated clean NO.
+  const anonBools: Record<AnonymizerKind, boolean[]> = { vpn: [], proxy: [], tor: [] };
   for (const p of payloads) {
     for (const entry of asArray(p.anonymizer)) {
       const rec = asRecord(entry);
-      if (!rec || rec.value !== true || typeof rec.kind !== 'string') continue;
+      if (!rec || typeof rec.kind !== 'string' || typeof rec.value !== 'boolean') continue;
       const kind = rec.kind;
-      if (!anonByKind.has(kind)) {
+      if (kind === 'vpn' || kind === 'proxy' || kind === 'tor') anonBools[kind].push(rec.value);
+      if (rec.value === true && !anonByKind.has(kind)) {
         anonByKind.set(kind, { kind, label: ANONYMIZER_LABELS[kind] ?? titleCase(kind) });
       }
     }
   }
+  const anonState = (values: boolean[]): AnonymizerState =>
+    values.length === 0 ? 'unknown' : values.some((v) => v) ? 'yes' : 'no';
+  const anonymizerStatus: AnonymizerStatus = {
+    vpn: anonState(anonBools.vpn),
+    proxy: anonState(anonBools.proxy),
+    tor: anonState(anonBools.tor),
+  };
+  // A checked negative (a real NO) is data too — an IP whose only signal is "Tor: NO" must render
+  // the card (with the honest NO + unknowns), not fall through to the empty state.
+  const hasAnonymizerData = ANONYMIZER_ORDER.some((k) => anonBools[k].length > 0);
 
   // Reputation — deduped by metric name, keeping the most-abusive reading when sources overlap.
   const repByName = new Map<string, ReputationRow>();
@@ -231,6 +312,18 @@ export function normalizeArtifact(data: LookupResponse): NormalizedArtifact {
     ),
   );
 
+  // Cloud / hosting — derived ONLY from the real `isp` / `usage_type` metadata (never fabricated).
+  const rawIsp = asDisplayString(mergedMeta.isp);
+  const rawUsageType = asDisplayString(mergedMeta.usage_type);
+  const cloudHosting: CloudHosting = {
+    provider: rawIsp ? cloudProviderLabel(rawIsp) : null,
+    isp: rawIsp,
+    usageType: rawUsageType,
+  };
+  // Real isp/usage_type is data too — an IP whose only signal is its ISP must render the card (with
+  // the Cloud/Hosting row), not fall through to "no intelligence found".
+  const hasCloudData = rawIsp !== null || rawUsageType !== null;
+
   const families = uniq(
     payloads.flatMap((p) => asArray(p.families).map(asDisplayString).filter((v): v is string => v !== null)),
   );
@@ -251,6 +344,8 @@ export function normalizeArtifact(data: LookupResponse): NormalizedArtifact {
 
   const hasData =
     anonymizers.length > 0 ||
+    hasAnonymizerData ||
+    hasCloudData ||
     reputation.length > 0 ||
     metadata.length > 0 ||
     families.length > 0 ||
@@ -264,6 +359,8 @@ export function normalizeArtifact(data: LookupResponse): NormalizedArtifact {
   return {
     verdict: reputationVerdict(reputation),
     anonymizers,
+    anonymizerStatus,
+    cloudHosting,
     reputation,
     metadata,
     families,
