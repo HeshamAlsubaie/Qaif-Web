@@ -10,6 +10,8 @@ import { IntegrityBadge } from '@/components/forensic/IntegrityBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { SendToBoardButton } from '@/features/board/SendToBoardButton';
+import { pinFromEvidence } from '@/features/board/boardModel';
 import { AddFindingPanel } from '@/features/evidence/AddFindingPanel';
 import { formatBytes, formatUtc, titleCase } from '@/lib/format';
 import { type CustodyEntryResponse, type EvidenceItemResponse } from '@/types/api';
@@ -60,7 +62,10 @@ function EvidenceCard({ item }: { item: EvidenceItemResponse }) {
           <span className="text-h4 text-foreground">{item.original_filename}</span>
           <Badge variant="outline">{item.evidence_type}</Badge>
         </div>
-        <IntegrityBadge verified={item.custody_verified} />
+        <div className="flex items-center gap-3">
+          <IntegrityBadge verified={item.custody_verified} />
+          <SendToBoardButton seed={pinFromEvidence(item)} />
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {item.custody_error && (

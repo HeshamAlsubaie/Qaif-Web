@@ -9,6 +9,8 @@ import { QueryBoundary } from '@/components/common/QueryBoundary';
 import { TierBadge } from '@/components/forensic/TierBadge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SendToBoardButton } from '@/features/board/SendToBoardButton';
+import { pinFromFinding } from '@/features/board/boardModel';
 import { type FindingResponse, type Tier } from '@/types/api';
 
 function buildColumns(tier: Tier): ColumnDef<FindingResponse, unknown>[] {
@@ -67,6 +69,17 @@ function buildColumns(tier: Tier): ColumnDef<FindingResponse, unknown>[] {
         tier={tier}
         confidence={tier === 'probabilistic' ? row.original.confidence : null}
       />
+    ),
+  });
+
+  cols.push({
+    id: 'board',
+    header: '',
+    enableSorting: false,
+    cell: ({ row }) => (
+      <div className="flex justify-end">
+        <SendToBoardButton seed={pinFromFinding(row.original, tier)} iconOnly />
+      </div>
     ),
   });
 

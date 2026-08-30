@@ -14,6 +14,8 @@ import * as React from 'react';
 import { EvidenceCite } from '@/components/common/EvidenceCite';
 import { TierBadge } from '@/components/forensic/TierBadge';
 import { Button } from '@/components/ui/button';
+import { SendToBoardButton } from '@/features/board/SendToBoardButton';
+import { pinFromEntity } from '@/features/board/boardModel';
 import type { GraphEdge, GraphNode, GraphResponse } from '@/types/api';
 
 import { entityVisual } from './graphModel';
@@ -81,6 +83,9 @@ function NodeDetail({ node }: { node: GraphNode }) {
       <MetaRow label="Entity ID">
         <span className="font-mono tabular-nums">#{node.entity_id}</span>
       </MetaRow>
+
+      {/* Pin a REFERENCE to this entity onto the investigation board — client analysis, no write. */}
+      <SendToBoardButton seed={pinFromEntity(node)} />
 
       <div className="flex flex-col gap-1.5">
         <span className="text-micro font-medium uppercase tracking-wider text-muted-foreground">

@@ -5,6 +5,8 @@ import { CaseProvider } from '@/app/CaseContext';
 import { RoleProvider } from '@/app/RoleContext';
 import { AppShell } from '@/components/shell/AppShell';
 import { NAV_SECTIONS } from '@/components/shell/navConfig';
+import { BoardProvider } from '@/features/board/BoardContext';
+import { BoardPage } from '@/features/board/BoardPage';
 import { CryptoPage } from '@/features/crypto/CryptoPage';
 import { DesignSystemPage } from '@/features/design-system/DesignSystemPage';
 import { EvidencePage } from '@/features/evidence/EvidencePage';
@@ -34,6 +36,7 @@ const PAGES: Record<string, ReactElement> = {
   '/crypto': <CryptoPage />,
   '/graph': <GraphPage />,
   '/timeline': <TimelinePage />,
+  '/board': <BoardPage />,
   '/evidence': <EvidencePage />,
   '/suggestions': <SuggestionsPage />,
   '/report': <ReportPage />,
@@ -108,7 +111,11 @@ export function App() {
   return (
     <RoleProvider>
       <CaseProvider>
-        <RouterProvider router={router} />
+        {/* BoardProvider needs the selected case (from CaseProvider) and wraps the router so a
+            "Send to board" action on any view and the /board page share ONE live per-case board. */}
+        <BoardProvider>
+          <RouterProvider router={router} />
+        </BoardProvider>
       </CaseProvider>
     </RoleProvider>
   );

@@ -7,6 +7,7 @@ import {
   HardDriveDownload,
   LayoutGrid,
   Network,
+  PencilRuler,
   Search,
   ShieldAlert,
   Waypoints,
@@ -51,6 +52,7 @@ export const NAV_SECTIONS: NavSection[] = [
 
   { path: '/graph', label: 'Graph', icon: Waypoints, group: 'Correlation', stageC: false, caseOnly: true },
   { path: '/timeline', label: 'Timeline', icon: Clock, stageC: false, caseOnly: true },
+  { path: '/board', label: 'Board', icon: PencilRuler, stageC: false, caseOnly: true },
 
   {
     path: '/evidence',
