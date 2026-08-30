@@ -21,36 +21,11 @@ function buildColumns(tier: Tier): ColumnDef<FindingResponse, unknown>[] {
         return (
           <div className="flex max-w-md flex-col gap-1">
             <span className="font-medium text-foreground">{f.title}</span>
-            <span className="type-caption">{f.description}</span>
-            {tier === 'probabilistic' && (f.method_description || f.limitations) && (
-              <span className="mt-0.5 text-micro text-muted-foreground">
-                {f.method_description && (
-                  <>
-                    <span className="font-semibold uppercase tracking-wide">Method:</span>{' '}
-                    {f.method_description}
-                  </>
-                )}
-                {f.method_description && f.limitations && ' · '}
-                {f.limitations && (
-                  <>
-                    <span className="font-semibold uppercase tracking-wide">Limits:</span>{' '}
-                    {f.limitations}
-                  </>
-                )}
-              </span>
-            )}
+            {/* The finding's own description — data (what the finding says), not UI prose. */}
+            {f.description && <span className="type-caption">{f.description}</span>}
           </div>
         );
       },
-    },
-    {
-      accessorKey: 'module_id',
-      header: 'Source module',
-      cell: ({ getValue }) => (
-        <span className="whitespace-nowrap font-mono text-caption text-muted-foreground">
-          {getValue() as string}
-        </span>
-      ),
     },
     {
       accessorKey: 'severity',
@@ -152,7 +127,7 @@ function FindingsGroup({
  */
 export function ThreatsPage() {
   return (
-    <CaseScoped kicker="Findings" title="Threats" sub="Case findings, separated by tier (R4).">
+    <CaseScoped kicker="Findings" title="Threats">
       {(caseId) => <ThreatsBody caseId={caseId} />}
     </CaseScoped>
   );

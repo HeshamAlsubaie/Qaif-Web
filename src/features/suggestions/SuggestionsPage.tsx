@@ -89,13 +89,9 @@ function SuggestionCard({ caseId, suggestion: s, approver }: SuggestionCardProps
           <span className="bg-ai/12 flex size-8 items-center justify-center rounded-md text-ai">
             <Bot className="size-4" aria-hidden />
           </span>
-          <div className="flex flex-col">
-            <span className="font-mono text-caption text-muted-foreground">
-              #{s.suggestion_id} · {s.provider} / {s.model_name}
-            </span>
-            <span className="text-caption text-muted-foreground">
-              output type: <span className="text-foreground">{s.output_type}</span>
-            </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-caption text-muted-foreground">#{s.suggestion_id}</span>
+            <Badge variant="muted">{s.output_type}</Badge>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -107,12 +103,6 @@ function SuggestionCard({ caseId, suggestion: s, approver }: SuggestionCardProps
       <CardContent className="flex flex-col gap-4">
         <div className="rounded-md border border-ai/25 bg-ai/[0.06] p-3">
           <p className="text-body-lg text-foreground">{s.output_text}</p>
-          {s.reasoning && (
-            <p className="mt-2 text-caption text-muted-foreground">
-              <span className="font-semibold uppercase tracking-wide">Reasoning:</span>{' '}
-              {s.reasoning}
-            </p>
-          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-caption text-muted-foreground">
@@ -240,17 +230,11 @@ function SuggestionsBody({
     >
       {(data) => (
         <div className="flex flex-col gap-5">
-          {/* R6 notice — the quarantine, stated up front. */}
-          <div className="flex items-start gap-3 rounded-lg border border-dashed border-ai/50 bg-ai/[0.08] p-4">
-            <Bot className="mt-0.5 size-5 shrink-0 text-ai" aria-hidden />
-            <p className="text-caption text-ai-foreground">{data.notice}</p>
-          </div>
-
           {/* Approver identity — recorded on every review (R10). */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-1 p-4">
             <UserCheck className="size-4 text-primary" aria-hidden />
             <label htmlFor="approver" className="text-caption text-muted-foreground">
-              Reviewing as <span className="text-foreground">(recorded on every decision)</span>:
+              Reviewing as:
             </label>
             <input
               id="approver"
@@ -283,11 +267,7 @@ function SuggestionsBody({
 export function SuggestionsPage() {
   const [approver, setApprover] = useApprover();
   return (
-    <CaseScoped
-      kicker="Custody"
-      title="AI Suggestions"
-      sub="Human review queue — advisory, unverified, never evidence (R6)."
-    >
+    <CaseScoped kicker="Custody" title="AI Suggestions">
       {(caseId) => (
         <SuggestionsBody caseId={caseId} approver={approver} setApprover={setApprover} />
       )}

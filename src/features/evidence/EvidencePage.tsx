@@ -122,11 +122,7 @@ function EvidenceCard({ item }: { item: EvidenceItemResponse }) {
  */
 export function EvidencePage() {
   return (
-    <CaseScoped
-      kicker="Custody"
-      title="Evidence"
-      sub="Manifest with SHA-256 (R2) and chain of custody (R3)."
-    >
+    <CaseScoped kicker="Custody" title="Evidence">
       {(caseId) => <EvidenceView caseId={caseId} />}
     </CaseScoped>
   );
@@ -146,10 +142,7 @@ function EvidenceView({ caseId }: { caseId: number }) {
           but no add affordance — just an honest reason. */}
       {canWrite ? (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="type-caption">
-              Add a finding to collect an external claim into this case under custody.
-            </span>
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <Button
               size="sm"
               variant={adding ? 'outline' : 'default'}

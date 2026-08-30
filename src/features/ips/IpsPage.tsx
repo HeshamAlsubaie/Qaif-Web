@@ -1,5 +1,5 @@
 import { type ColumnDef } from '@tanstack/react-table';
-import { ArrowRight, Info } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 import { useGraph } from '@/api/queries';
 import { CaseScoped } from '@/components/common/CaseScoped';
@@ -172,15 +172,6 @@ function IpsBody({ data }: { data: GraphResponse }) {
           </CardContent>
         </Card>
       )}
-
-      <div className="flex items-start gap-2 text-micro text-muted-foreground">
-        <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-        <span>
-          OSINT enrichment and first/last-seen are not part of the current read API contract, so
-          they are not shown here rather than fabricated. Each entity carries its tier from the
-          graph.
-        </span>
-      </div>
     </div>
   );
 }
@@ -188,11 +179,7 @@ function IpsBody({ data }: { data: GraphResponse }) {
 /** IPs / Network — the network entity surface (IP / Domain / URL …) and their relationships. */
 export function IpsPage() {
   return (
-    <CaseScoped
-      kicker="Findings"
-      title="IPs / Network"
-      sub="Network entities and their relationships, tier-carried."
-    >
+    <CaseScoped kicker="Findings" title="IPs / Network">
       {(caseId) => <IpsQuery caseId={caseId} />}
     </CaseScoped>
   );

@@ -130,11 +130,6 @@ function TimelineBody({
 
       <div className="order-1 flex flex-col gap-3 lg:sticky lg:top-4 lg:order-2 lg:self-start">
         <TimelineLegend presentKinds={layout.presentKinds} />
-        {timeline.summary && (
-          <p className="rounded-lg border border-border/70 bg-surface-1/70 p-3 text-micro leading-snug text-muted-foreground">
-            {timeline.summary}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -161,11 +156,7 @@ function TimelineQuery({ caseId }: { caseId: number }) {
 /** Timeline — the case's events on a UTC axis, with timing uncertainty rendered visibly. */
 export function TimelinePage() {
   return (
-    <CaseScoped
-      kicker="Correlation"
-      title="Timeline"
-      sub="The case's events reconciled onto a UTC axis — with every timing ambiguity shown, never silently resolved."
-    >
+    <CaseScoped kicker="Correlation" title="Timeline">
       {(caseId) => <TimelineQuery caseId={caseId} />}
     </CaseScoped>
   );

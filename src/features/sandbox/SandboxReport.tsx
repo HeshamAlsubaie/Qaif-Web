@@ -39,8 +39,6 @@ export function SandboxReport({ data }: { data: SandboxReportResponse }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <ObservationNotice />
-
       {/* Verdict header — filename, the score band, run status, any family labels. */}
       <Card className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -53,6 +51,11 @@ export function SandboxReport({ data }: { data: SandboxReportResponse }) {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {/* R4 — this whole report is probabilistic observation, kept as an integrity signal. */}
+            <span className="inline-flex items-center gap-1 rounded border border-dashed border-probabilistic/40 bg-probabilistic/10 px-2 py-1 text-caption leading-none text-probabilistic">
+              <FlaskConical className="size-3.5" aria-hidden />
+              Probabilistic
+            </span>
             <span
               className={cn(
                 'inline-flex items-center gap-1 rounded border px-2 py-1 text-caption leading-none',
@@ -81,21 +84,6 @@ export function SandboxReport({ data }: { data: SandboxReportResponse }) {
       <SignaturesSection signatures={overview.signatures} />
       <TargetsSection targets={overview.targets} />
       <SampleDetails sample={overview.sample} />
-    </div>
-  );
-}
-
-function ObservationNotice() {
-  return (
-    <div className="flex items-start gap-2 rounded-md border border-dashed border-probabilistic/40 bg-probabilistic/5 px-3 py-2 text-caption text-muted-foreground">
-      <FlaskConical className="mt-0.5 size-3.5 shrink-0 text-probabilistic" aria-hidden />
-      <span>
-        <span className="font-semibold text-foreground">
-          Probabilistic observation — not confirmed evidence.
-        </span>{' '}
-        Everything below is what the sandbox OBSERVED in one automated detonation. It is an indicator,
-        not a confirmed fact, and it is a public analysis under no chain of custody.
-      </span>
     </div>
   );
 }
@@ -135,14 +123,19 @@ function SignaturesSection({ signatures }: { signatures: SandboxSignature[] }) {
                 <span className="text-body font-medium text-foreground">{sig.name}</span>
                 {sig.score !== null && <Badge variant="muted">score {sig.score}</Badge>}
               </div>
-              {sig.desc && <span className="type-caption">{sig.desc}</span>}
+              {/* MITRE ATT&CK — behaviour-derived, present-only (only signatures that carry a ttp). */}
               {sig.ttp.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span className="text-micro text-muted-foreground">ATT&CK</span>
+                  <span className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">
+                    ATT&amp;CK
+                  </span>
                   {sig.ttp.map((ttp) => (
-                    <Badge key={ttp} variant="outline">
+                    <span
+                      key={ttp}
+                      className="inline-flex items-center rounded-md border border-probabilistic/40 bg-probabilistic/10 px-1.5 py-0.5 font-mono text-micro font-semibold text-probabilistic"
+                    >
                       {ttp}
-                    </Badge>
+                    </span>
                   ))}
                 </div>
               )}
