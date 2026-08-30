@@ -17,6 +17,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { GraphLegend } from '@/features/graph/GraphLegend';
+import { GraphDetailPanel, type GraphSelection } from '@/features/graph/GraphDetailPanel';
 import { cn } from '@/lib/utils';
 import type { GraphResponse } from '@/types/api';
 
@@ -46,6 +47,17 @@ interface DiamondGraphProps {
 export function DiamondGraph({ graph, stageClassName }: DiamondGraphProps) {
   const model = React.useMemo(() => buildDiamondModel(graph), [graph]);
   const canvasRef = React.useRef<DiamondCanvasHandle>(null);
+  const [selection, setSelection] = React.useState<GraphSelection | null>(null);
+
+  // A new case's graph → drop any open vertex detail (the selected entity may no longer exist).
+  React.useEffect(() => {
+    setSelection(null);
+  }, [graph]);
+
+  const closePanel = React.useCallback(() => {
+    setSelection(null);
+    canvasRef.current?.clearSelection();
+  }, []);
 
   const placed = model.placedIds.size;
   const unclassifiedTypes = React.useMemo(
@@ -61,7 +73,16 @@ export function DiamondGraph({ graph, stageClassName }: DiamondGraphProps) {
           stageClassName ?? 'h-[62vh] min-h-[480px]',
         )}
       >
-        <DiamondCanvas ref={canvasRef} model={model} />
+        <DiamondCanvas
+          ref={canvasRef}
+          model={model}
+          onSelectNode={(node) => setSelection({ kind: 'node', node })}
+          onSelectNone={() => setSelection(null)}
+        />
+
+        {selection && (
+          <GraphDetailPanel selection={selection} graph={graph} onClose={closePanel} />
+        )}
 
         {/* Scope disclosure (top-left): the Diamond is a SUBSET of the graph, stated explicitly. */}
         <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[min(90%,40rem)] rounded-md border border-border bg-surface-1/90 px-2.5 py-1.5 text-micro text-muted-foreground backdrop-blur">

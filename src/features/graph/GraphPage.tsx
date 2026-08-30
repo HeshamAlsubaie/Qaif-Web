@@ -43,7 +43,7 @@ function GraphSkeleton() {
 }
 
 function GraphBody({ graph }: { graph: GraphResponse }) {
-  const [layout, setLayout] = React.useState<GraphLayoutName>('cose');
+  const [layout, setLayout] = React.useState<GraphLayoutName>('breadthfirst');
   const [selection, setSelection] = React.useState<GraphSelection | null>(null);
   const canvasRef = React.useRef<GraphCanvasHandle>(null);
 

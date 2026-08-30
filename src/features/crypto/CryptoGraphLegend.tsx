@@ -57,7 +57,7 @@ export function CryptoGraphLegend() {
         <li className="flex items-center gap-2.5">
           <ArrowSwatch />
           <span className="text-caption text-foreground">
-            Arrow <span className="text-muted-foreground">· money direction (in &amp; out)</span>
+            Arrow <span className="text-muted-foreground">· parent → child funding flow</span>
           </span>
         </li>
         <li className="flex items-center gap-2.5">

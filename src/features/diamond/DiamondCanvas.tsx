@@ -9,12 +9,13 @@
  * Lifecycle follows the crypto-graph fix: destroyed-guarded, listeners removed + destroyed cleanly on
  * unmount, and a ResizeObserver that re-fits — so no ticks ever fire on a torn-down instance.
  */
-import cytoscape, { type Core, type ElementDefinition, type Layouts } from 'cytoscape';
+import cytoscape, { type Core, type ElementDefinition, type EventObject, type Layouts } from 'cytoscape';
 import * as React from 'react';
 
 import { entityVisual } from '@/features/graph/graphModel';
 import { buildStylesheet, token } from '@/features/graph/graphStyle';
 import type { Stylesheet } from 'cytoscape';
+import type { GraphNode } from '@/types/api';
 
 import {
   VERTEX_LABEL,
@@ -25,6 +26,15 @@ import {
 
 export interface DiamondCanvasHandle {
   fit: () => void;
+  clearSelection: () => void;
+}
+
+interface DiamondCanvasProps {
+  model: DiamondModel;
+  /** Clicking a vertex entity surfaces THAT entity's record in the detail panel. */
+  onSelectNode: (node: GraphNode) => void;
+  /** Tapping empty canvas clears the selection. */
+  onSelectNone: () => void;
 }
 
 // Diamond geometry (canvas units; `fit` scales it to the container). Wider than tall because entity
@@ -78,6 +88,8 @@ export function buildDiagram(model: DiamondModel): {
       group: 'nodes',
       data: { id, zone: 1, label: VERTEX_LABEL[vk].toUpperCase() },
       position: { ...positions[id] },
+      // A region label, not an entity — never selectable (only vertex entities open the panel).
+      selectable: false,
     });
   }
 
@@ -108,6 +120,7 @@ export function buildDiagram(model: DiamondModel): {
     els.push({
       group: 'edges',
       data: { id: `frame_${i}`, source: `zone_${a}`, target: `zone_${b}`, frame: 1 },
+      selectable: false,
     });
   });
 
@@ -124,6 +137,8 @@ export function buildDiagram(model: DiamondModel): {
         label: e.rel_type,
         edge: e,
       },
+      // The diamond surfaces per-VERTEX data on select; relationship edges are drawn, not clickable.
+      selectable: false,
     });
   }
 
@@ -190,11 +205,15 @@ function buildDiamondStylesheet(): Stylesheet[] {
   return [...base, ...extra];
 }
 
-export const DiamondCanvas = React.forwardRef<DiamondCanvasHandle, { model: DiamondModel }>(
-  function DiamondCanvas({ model }, ref) {
+export const DiamondCanvas = React.forwardRef<DiamondCanvasHandle, DiamondCanvasProps>(
+  function DiamondCanvas({ model, onSelectNode, onSelectNone }, ref) {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const cyRef = React.useRef<Core | null>(null);
     const layoutRef = React.useRef<Layouts | null>(null);
+
+    // Latest callbacks in a ref so the init effect stays keyed only on `model`.
+    const handlers = React.useRef({ onSelectNode, onSelectNone });
+    handlers.current = { onSelectNode, onSelectNone };
 
     React.useEffect(() => {
       const container = containerRef.current;
@@ -205,14 +224,30 @@ export const DiamondCanvas = React.forwardRef<DiamondCanvasHandle, { model: Diam
         container,
         elements,
         style: buildDiamondStylesheet(),
-        minZoom: 0.2,
-        maxZoom: 2.5,
-        wheelSensitivity: 0.2,
-        autoungrabify: true, // a fixed diagram — nodes are not draggable
-        autounselectify: true,
+        // A FIXED, LOCKED diagram: the four vertices sit at their canonical rhombus positions and the
+        // user cannot move, pan, or zoom them out of that arrangement. Only SELECTION is interactive
+        // (tap a vertex → its record). autoungrabify = no node dragging; user-panning/zooming off =
+        // the frame can't be shoved around; box-selection off. Nothing here re-arranges the diamond.
+        autoungrabify: true,
+        userPanningEnabled: false,
+        userZoomingEnabled: false,
         boxSelectionEnabled: false,
       });
       cyRef.current = cy;
+
+      // Detail-on-select — a tap on a vertex ENTITY (not a zone label / frame) surfaces its record.
+      cy.on('tap', 'node', (evt: EventObject) => {
+        if (cy.destroyed()) return;
+        const node = evt.target.data('node') as GraphNode | undefined;
+        if (node) handlers.current.onSelectNode(node);
+      });
+      cy.on('tap', (evt: EventObject) => {
+        if (cy.destroyed()) return;
+        if (evt.target === cy) {
+          cy.elements().unselect();
+          handlers.current.onSelectNone();
+        }
+      });
 
       // Run the `preset` layout with an EXPLICIT positions map (the diamond geometry) via a tracked
       // handle. Explicit positions are authoritative — they place each vertex zone + its entities at
@@ -247,6 +282,10 @@ export const DiamondCanvas = React.forwardRef<DiamondCanvasHandle, { model: Diam
         if (cy && !cy.destroyed()) {
           cy.animate({ fit: { eles: cy.elements(), padding: 70 } }, { duration: 200 });
         }
+      },
+      clearSelection: () => {
+        const cy = cyRef.current;
+        if (cy && !cy.destroyed()) cy.elements().unselect();
       },
     }));
 

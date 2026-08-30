@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { formatUtc } from '@/lib/format';
 
 import {
+  outwardChildrenOf,
   type CryptoGraphEdge,
   type CryptoGraphModel,
   type CryptoGraphNode,
@@ -102,7 +103,8 @@ function NodeDetail({
   isExpanded: boolean;
   onToggleExpand: (id: number) => void;
 }) {
-  const neighborCount = model.neighborsOf.get(node.entityId)?.length ?? 0;
+  // Expand reveals the wallet's parent→child (outward funding) children — matches the canvas `+N`.
+  const childCount = outwardChildrenOf(model, node.entityId).length;
   const inCount = model.inCount.get(node.entityId) ?? 0;
   const outCount = model.outCount.get(node.entityId) ?? 0;
 
@@ -163,17 +165,17 @@ function NodeDetail({
         </div>
       )}
 
-      {neighborCount > 0 && (
+      {childCount > 0 && (
         <Button variant="outline" size="sm" onClick={() => onToggleExpand(node.entityId)}>
           {isExpanded ? (
             <>
               <ChevronsDownUp aria-hidden />
-              Collapse {neighborCount} {neighborCount === 1 ? 'counterparty' : 'counterparties'}
+              Collapse {childCount} funded {childCount === 1 ? 'wallet' : 'wallets'}
             </>
           ) : (
             <>
               <ChevronsUpDown aria-hidden />
-              Expand {neighborCount} {neighborCount === 1 ? 'counterparty' : 'counterparties'}
+              Expand {childCount} funded {childCount === 1 ? 'wallet' : 'wallets'}
             </>
           )}
         </Button>

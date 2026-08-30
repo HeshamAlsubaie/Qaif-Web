@@ -21,6 +21,7 @@ import * as React from 'react';
 import {
   cryptoNodeId,
   hiddenChildCount,
+  parentChildEdges,
   type CryptoGraphEdge,
   type CryptoGraphModel,
   type CryptoGraphNode,
@@ -51,7 +52,15 @@ interface CryptoGraphCanvasProps {
   onBackgroundTap: () => void;
 }
 
-/** All elements for the trace, built once. Visibility is applied afterwards, never by re-adding. */
+/**
+ * All elements for the trace, built once. Visibility is applied afterwards, never by re-adding.
+ *
+ * Only the PARENT→CHILD funding edges are drawn ({@link parentChildEdges}) — each real transaction
+ * oriented outward from the origin, one directed edge per funding step. The reciprocal / back- /
+ * same-hop cross-links that turned the old graph into a web are not drawn (they are not the funding
+ * flow). Node shapes stay clean and distinct: an octagon marks the sanctioned root, a diamond every
+ * other wallet.
+ */
 function toCryptoElements(model: CryptoGraphModel): ElementDefinition[] {
   const nodes: ElementDefinition[] = model.nodes.map((n) => ({
     group: 'nodes',
@@ -67,7 +76,7 @@ function toCryptoElements(model: CryptoGraphModel): ElementDefinition[] {
       node: n,
     },
   }));
-  const edges: ElementDefinition[] = model.edges.map((e) => ({
+  const edges: ElementDefinition[] = parentChildEdges(model).map((e) => ({
     group: 'edges',
     data: {
       id: e.id,

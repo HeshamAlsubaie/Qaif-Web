@@ -15,7 +15,7 @@
  */
 import type { LayoutOptions, Stylesheet } from 'cytoscape';
 
-export type LayoutName = 'cose' | 'breadthfirst' | 'grid';
+export type LayoutName = 'breadthfirst' | 'grid';
 
 /** Read a raw HSL token (`"189 84% 47%"`) from :root. */
 function readToken(name: string): string {
@@ -151,9 +151,10 @@ export function buildStylesheet(): Stylesheet[] {
 }
 
 /**
- * Layout options. `cose` (force-directed) self-arranges the network; `breadthfirst` gives a
- * hierarchical read; `grid` is a stable deterministic fallback. All fit + pad on run. Layout is run
- * on data/layout change only (see GraphCanvas) — never on every React render.
+ * Layout options — exactly two, deliberately: `breadthfirst` gives a directed HIERARCHY read, `grid`
+ * a stable deterministic arrangement. The force-directed (`cose`) layout was removed: it self-tangled
+ * into a hairball on dense cases and read as noise, not structure. All fit + pad on run. Layout is
+ * run on data/layout change only (see GraphCanvas) — never on every React render.
  */
 export function buildLayout(name: LayoutName): LayoutOptions {
   const base = { fit: true, padding: 48, animate: true, animationDuration: 350 } as const;
@@ -162,20 +163,8 @@ export function buildLayout(name: LayoutName): LayoutOptions {
     case 'grid':
       return { name: 'grid', ...base, avoidOverlap: true, avoidOverlapPadding: 20, spacingFactor: 1.2 } as LayoutOptions;
     case 'breadthfirst':
-      return { name: 'breadthfirst', ...base, directed: true, spacingFactor: 1.5, grid: false } as LayoutOptions;
-    case 'cose':
     default:
-      return {
-        name: 'cose',
-        ...base,
-        randomize: false,
-        nodeRepulsion: 12000,
-        idealEdgeLength: 150,
-        nodeOverlap: 24,
-        gravity: 0.6,
-        componentSpacing: 120,
-        numIter: 1200,
-      } as LayoutOptions;
+      return { name: 'breadthfirst', ...base, directed: true, spacingFactor: 1.5, grid: false } as LayoutOptions;
   }
 }
 
@@ -184,23 +173,22 @@ export interface LayoutMeta {
   label: string;
 }
 
-/** The layouts offered in the toolbar picker: a force-directed default + two alternatives. */
+/** The layouts offered in the toolbar picker — exactly two: a directed hierarchy and a grid. */
 export const LAYOUTS: LayoutMeta[] = [
-  { name: 'cose', label: 'Force' },
   { name: 'breadthfirst', label: 'Hierarchy' },
   { name: 'grid', label: 'Grid' },
 ];
 
 /**
- * The GENERAL Graph view's layout options — the three whole-graph layouts PLUS "Diamond". Diamond is
- * special: unlike Force/Hierarchy/Grid (which arrange the FULL node set), it is the one option that
- * also SETS NODE SCOPE — it renders only the diamond-scoped subset (the high-level entities mapped to
- * the four vertices), because a diamond of every node is meaningless. Kept OUT of the shared
- * ``LAYOUTS`` so the crypto graph's toolbar (which reuses ``LAYOUTS``) never offers it.
+ * The GENERAL Graph view's layout options — the two whole-graph layouts (Hierarchy/Grid) PLUS the
+ * "Diamond" LENS. Diamond is not a layout algorithm: unlike Hierarchy/Grid (which arrange the FULL
+ * node set), it also SETS NODE SCOPE — rendering only the diamond-scoped subset (the high-level
+ * entities mapped to the four vertices), because a diamond of every node is meaningless. It is kept
+ * OUT of the shared ``LAYOUTS`` so the crypto graph's toolbar (which reuses ``LAYOUTS``) never offers
+ * it, and so the two *layouts* stay exactly two.
  */
 export type GraphLayoutName = LayoutName | 'diamond';
 
 export const GRAPH_LAYOUTS: readonly { name: GraphLayoutName; label: string }[] = [
   ...LAYOUTS,
-  { name: 'diamond', label: 'Diamond' },
 ];

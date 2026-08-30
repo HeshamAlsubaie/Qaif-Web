@@ -21,6 +21,8 @@ import type { CryptoTraceResponse } from '@/types/api';
 import {
   buildCryptoGraph,
   computeVisibleNodes,
+  outwardChildrenOf,
+  parentChildEdges,
   type CryptoGraphEdge,
   type CryptoGraphNode,
 } from './cryptoGraph';
@@ -56,8 +58,8 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
   const handleNodeTap = React.useCallback(
     (node: CryptoGraphNode) => {
       setSelection({ kind: 'node', node });
-      // Expandable if it has counterparties in EITHER direction (matches the canvas `+N`).
-      if ((model.neighborsOf.get(node.entityId)?.length ?? 0) > 0) toggleExpand(node.entityId);
+      // Expandable if it has parent→child (outward funding) children (matches the canvas `+N`).
+      if (outwardChildrenOf(model, node.entityId).length > 0) toggleExpand(node.entityId);
     },
     [model, toggleExpand],
   );
@@ -102,7 +104,9 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
     );
   }
 
-  const visibleEdgeCount = model.edges.reduce(
+  // Count only the DRAWN parent→child funding edges among the visible set — the same subset the
+  // canvas renders — so "flows" never over-reports edges that aren't on screen.
+  const visibleEdgeCount = parentChildEdges(model).reduce(
     (acc, e) => (visibleIds.has(e.sourceId) && visibleIds.has(e.targetId) ? acc + 1 : acc),
     0,
   );
@@ -177,13 +181,14 @@ export function CryptoGraphView({ data }: { data: CryptoTraceResponse }) {
       </Card>
 
       <p className="px-1 text-micro text-muted-foreground">
-        Laid out left-to-right by hop: the sanctioned origin sits at the left, its counterparties
-        column by column rightward, so horizontal distance is distance from the origin. Progressive
-        reveal — deeper hops stay hidden until you click a node to reveal its counterparties, from the
-        trace already loaded, never a new fetch. Node size and fade encode confidence (it decays per
-        hop); arrows show real money direction — inflows to the origin and outflows both. Select an
-        edge for its amount and txid. Everything is probabilistic (R4) — a trace is an indicator, not
-        confirmed evidence.
+        Laid out left-to-right by hop: the sanctioned origin sits at the left, the wallets it funded
+        column by column rightward, so horizontal distance is distance from the origin. Edges are the
+        parent→child funding flow only — one directed arrow per funding step, pointing the way the
+        money moved outward; lateral and back cross-links are not drawn, so it reads as a flow, not a
+        web. Progressive reveal — deeper hops stay hidden until you click a node to reveal the wallets
+        it funded, from the trace already loaded, never a new fetch. Node size and fade encode
+        confidence (it decays per hop). Select an edge for its amount and txid. Everything is
+        probabilistic (R4) — a trace is an indicator, not confirmed evidence.
       </p>
     </div>
   );

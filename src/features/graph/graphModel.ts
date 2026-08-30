@@ -41,7 +41,7 @@ import type { ElementDefinition } from 'cytoscape';
 
 import type { GraphEdge, GraphNode, GraphResponse } from '@/types/api';
 
-/** Cytoscape built-in node shapes we use to hint entity kind. */
+/** Cytoscape built-in node shapes we use to hint entity kind (no stars — they read as noise). */
 export type CyShape =
   | 'ellipse'
   | 'round-rectangle'
@@ -50,7 +50,6 @@ export type CyShape =
   | 'hexagon'
   | 'octagon'
   | 'pentagon'
-  | 'star'
   | 'tag';
 
 export interface EntityVisual {
@@ -61,35 +60,55 @@ export interface EntityVisual {
 /**
  * Canonical entity types (CLAUDE.md §5) → visual. Adding a type here is presentation only; it never
  * introduces a new entity type (those live in the shared schema).
+ *
+ * Shape encodes the entity's SEMANTIC FAMILY, consistently — one shape per family, so the graph is
+ * scannable by silhouette alone (and never uses stars/plain squares, which read as decoration):
+ *   round-rectangle → infrastructure (network / web reach)
+ *   ellipse         → identity (people, accounts, handles, contact)
+ *   hexagon         → threat / attribution (actor, campaign, technique)
+ *   octagon         → victim organisation (the target — a distinct, prominent silhouette)
+ *   diamond         → financial (wallet, transaction)
+ *   pentagon        → credentials / keys / tokens
+ *   rectangle       → host artifacts (device, process, mutex, registry, cloud resource)
+ *   tag             → files / malware family
  */
 const ENTITY_VISUALS: Record<string, EntityVisual> = {
-  IP: { shape: 'ellipse', icon: Network },
+  // Infrastructure — round-rectangle
+  IP: { shape: 'round-rectangle', icon: Network },
   Domain: { shape: 'round-rectangle', icon: Globe },
   URL: { shape: 'round-rectangle', icon: Link },
   WebResource: { shape: 'round-rectangle', icon: AppWindow },
-  FileHash: { shape: 'hexagon', icon: FileDigit },
-  Wallet: { shape: 'diamond', icon: Wallet },
-  Transaction: { shape: 'diamond', icon: Coins },
-  EmailAddress: { shape: 'tag', icon: AtSign },
-  EmailMessage: { shape: 'tag', icon: Mail },
-  PhoneNumber: { shape: 'tag', icon: Phone },
+  OnionAddress: { shape: 'round-rectangle', icon: Radio },
+  // Identity — ellipse
   Account: { shape: 'ellipse', icon: User },
   Identity: { shape: 'ellipse', icon: Fingerprint },
   Alias: { shape: 'ellipse', icon: User },
+  EmailAddress: { shape: 'ellipse', icon: AtSign },
+  EmailMessage: { shape: 'ellipse', icon: Mail },
+  PhoneNumber: { shape: 'ellipse', icon: Phone },
+  // Threat / attribution — hexagon
+  ThreatActor: { shape: 'hexagon', icon: Skull },
+  Campaign: { shape: 'hexagon', icon: Target },
+  MitreTechnique: { shape: 'hexagon', icon: ShieldAlert },
+  // Victim — octagon
+  VictimOrg: { shape: 'octagon', icon: ShieldAlert },
+  // Financial — diamond
+  Wallet: { shape: 'diamond', icon: Wallet },
+  Transaction: { shape: 'diamond', icon: Coins },
+  // Credentials / keys — pentagon
   AccessKey: { shape: 'pentagon', icon: KeyRound },
   OAuthApp: { shape: 'pentagon', icon: AppWindow },
   SessionToken: { shape: 'pentagon', icon: Lock },
   LeakedCredential: { shape: 'pentagon', icon: KeyRound },
-  CloudResource: { shape: 'octagon', icon: Cloud },
+  // Host artifacts — rectangle
+  CloudResource: { shape: 'rectangle', icon: Cloud },
   Device: { shape: 'rectangle', icon: HardDrive },
   Process: { shape: 'rectangle', icon: Cpu },
   Mutex: { shape: 'rectangle', icon: Lock },
   RegistryKey: { shape: 'rectangle', icon: Server },
-  OnionAddress: { shape: 'round-rectangle', icon: Radio },
-  VictimOrg: { shape: 'star', icon: ShieldAlert },
-  ThreatActor: { shape: 'star', icon: Skull },
-  Campaign: { shape: 'star', icon: Target },
-  MalwareFamily: { shape: 'hexagon', icon: Bug },
+  // Files / malware — tag
+  FileHash: { shape: 'tag', icon: FileDigit },
+  MalwareFamily: { shape: 'tag', icon: Bug },
 };
 
 const FALLBACK_VISUAL: EntityVisual = { shape: 'ellipse', icon: Circle };
