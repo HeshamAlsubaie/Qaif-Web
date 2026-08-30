@@ -10,13 +10,12 @@ import {
 import * as React from 'react';
 import { useNavigate, type To } from 'react-router-dom';
 
+import qaifLogo from '@/assets/qaif-logo.png';
 import { useSelectedCase } from '@/app/CaseContext';
 import { useRole } from '@/app/RoleContext';
 import { Button } from '@/components/ui/button';
-import { RoleSwitcher } from '@/components/shell/RoleSwitcher';
 import { cn } from '@/lib/utils';
 
-import { BrandMark } from './BrandMark';
 import { UniversalSearch } from './UniversalSearch';
 
 /**
@@ -156,28 +155,39 @@ function CaseIdCard() {
 
 export function LandingPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center overflow-y-auto bg-surface-0 px-6 py-10">
-      <div className="flex w-full max-w-[1080px] items-center justify-between">
-        <BrandMark />
-        <RoleSwitcher />
-      </div>
+    <div className="flex min-h-screen w-full flex-col items-center overflow-y-auto bg-surface-0 px-6 py-6">
+      {/*
+        Landing role switcher DISABLED for now (IAM not removed): the switcher still lives in
+        AppShell/ToolShell and all IAM code (RoleContext, roleHeaders, InvestigatorOnly gates,
+        backend enforcement) is intact. Re-enable this and revert RoleContext's DEFAULT_ROLE to
+        Viewer when IAM returns to the landing.
+        <div className="flex w-full max-w-[1080px] items-center justify-end">
+          <RoleSwitcher />
+        </div>
+      */}
 
-      <div className="flex w-full max-w-[1080px] flex-1 flex-col items-center pt-16">
-        <div className="mb-9 flex max-w-[64ch] flex-col items-center gap-2 text-center">
-          <span className="text-micro font-semibold uppercase tracking-wider text-primary">
-            Start here
-          </span>
-          <h1 className="type-h1">Search anything</h1>
-          <p className="type-body text-muted-foreground">
-            Look up any indicator across every enabled intelligence source. If it already belongs to
-            a case, QAIF tells you. Free search — nothing here is under chain of custody.
-          </p>
+      {/*
+        The logo is the landing's ONLY identity element (wordmark removed from the DOM), so alt="QAIF"
+        is required. It is the page CENTERPIECE: WIDTH-constrained to 360px (height auto follows the
+        1024×1263 portrait → ~444px) so the thin wordmark rules stay clean hairlines; 360px downscales
+        the 1024px source, so no upscaling/blur. The alpha PNG sits directly on the dark background —
+        no plate/border. Stack is centered on one vertical axis (logo → search → tools). The
+        `max-h-[48vh] object-contain` is a SHORT-VIEWPORT backstop only: on a ~800px-tall laptop it
+        scales the logo down proportionally (no distortion) so the tool cards stay above the fold; on
+        normal/tall desktops (≳925px tall) it renders at the full 360px.
+      */}
+      <div className="flex w-full max-w-[1080px] flex-1 flex-col items-center justify-center gap-8">
+        <div className="flex w-full flex-col items-center gap-6">
+          <img
+            src={qaifLogo}
+            alt="QAIF"
+            className="h-auto w-[360px] max-w-[86vw] max-h-[48vh] select-none object-contain"
+          />
+          <UniversalSearch />
         </div>
 
-        <UniversalSearch />
-
         {/* Secondary tools around the search star. */}
-        <div className="mt-14 w-full">
+        <div className="w-full">
           <span className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
             Tools
           </span>

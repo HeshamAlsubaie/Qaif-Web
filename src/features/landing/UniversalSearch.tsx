@@ -1,11 +1,10 @@
-import { Loader2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { useIndicatorMatch, useIocLookup } from '@/api/queries';
 import { LoadingState } from '@/components/common/States';
-import { Button } from '@/components/ui/button';
-import { IdleHint, IocResults, RequestErrorState } from '@/features/search/IocResults';
+import { IocResults, RequestErrorState } from '@/features/search/IocResults';
 
 import { MatchBanner } from './MatchBanner';
 
@@ -73,32 +72,13 @@ export function UniversalSearch() {
           <input
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder="Search any indicator — IP, domain, hash, URL, CVE, wallet address…"
+            placeholder="Search for any indicator"
             autoComplete="off"
             spellCheck={false}
             aria-label="Search any indicator"
-            className="h-14 w-full rounded-xl border border-border bg-surface-1 pl-12 pr-32 font-mono text-body-lg text-foreground shadow-sm outline-none transition-colors focus:border-primary/70 focus:bg-surface-0"
+            className="h-14 w-full rounded-xl border border-border bg-surface-1 pl-12 pr-4 font-mono text-body-lg text-foreground shadow-sm outline-none transition-colors focus:border-primary/70 focus:bg-surface-0"
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-            <Button type="submit" size="lg" disabled={!value.trim() || lookup.isPending}>
-              {lookup.isPending ? (
-                <>
-                  <Loader2 className="animate-spin" aria-hidden />
-                  Searching…
-                </>
-              ) : (
-                <>
-                  <Search aria-hidden />
-                  Search
-                </>
-              )}
-            </Button>
-          </div>
         </div>
-        <p className="mt-2 text-center text-micro text-muted-foreground">
-          Read-only intelligence lookup — QAIF never uploads, submits, or detonates a sample. Free
-          search: nothing here is written or under chain of custody.
-        </p>
       </form>
 
       {(showMatch || lookup.isPending || lookup.isError || lookup.isSuccess) && (
@@ -118,12 +98,6 @@ export function UniversalSearch() {
             />
           )}
           {lookup.isSuccess && <IocResults data={lookup.data} />}
-        </div>
-      )}
-
-      {lookup.isIdle && (
-        <div className="mt-8 w-full max-w-[720px]">
-          <IdleHint />
         </div>
       )}
     </div>

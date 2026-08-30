@@ -9,6 +9,7 @@ import { describeApiError } from '@/lib/apiError';
 import { titleCase } from '@/lib/format';
 import type { LookupResponse, LookupSourceResult } from '@/types/api';
 
+import { ArtifactCard } from './ArtifactCard';
 import { SourceResultCard } from './SourceResultCard';
 
 /**
@@ -90,6 +91,19 @@ export function IocResults({
   data: LookupResponse;
   renderAddAction?: (result: LookupSourceResult) => ReactNode;
 }) {
+  // The search/landing view (no add hooks, non-CVE) renders ONE merged artifact card that owns its
+  // own full header. The collection view (renderAddAction) and the CVE dashboard keep the per-source
+  // layout below, so each source stays individually addable / the CVE dashboard renders unchanged.
+  const artifactMode = data.recognized && !renderAddAction && data.detected_type !== 'cve';
+  if (artifactMode) {
+    return (
+      <div className="flex flex-col gap-4">
+        <ExternalIntelNotice />
+        <ArtifactCard data={data} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">

@@ -2,8 +2,9 @@
  * Acting-role state. Holds the role the user is currently acting as (Viewer | Investigator),
  * persisted to localStorage so a reload keeps it. This is the ONE source of truth for the role: it
  * drives BOTH the IAM header sent on writes (via {@link ../api/identity.roleHeaders}) AND whether the
- * UI shows write actions at all. The default is Viewer — fail-closed, matching the backend's posture
- * — so nothing writes until the user deliberately acts as an Investigator.
+ * UI shows write actions at all. The default is normally Viewer (fail-closed), but is TEMPORARILY
+ * Investigator while the landing role switcher is disabled (see {@link DEFAULT_ROLE}) — otherwise a
+ * fresh user, unable to switch roles, could never open a case. The backend gate is unchanged.
  *
  * This is a Stage-4 STAND-IN for real auth: switching is a trivial dev toggle in the shell, not a
  * login. The backend still independently enforces the gate (Viewer → 403 on writes), so hiding the
@@ -14,7 +15,11 @@ import * as React from 'react';
 import type { Role } from '@/api/identity';
 
 const STORAGE_KEY = 'qaif.actingRole';
-const DEFAULT_ROLE: Role = 'Viewer';
+// TEMPORARY: default Investigator while the landing role switcher is disabled; revert to Viewer
+// (fail-closed) when IAM/the switcher is re-enabled. The landing switcher is how a Viewer becomes an
+// Investigator, and a Viewer cannot open a case — with that switcher hidden, a Viewer default would
+// dead-end every write. The backend gate is UNCHANGED; this only flips the frontend default.
+const DEFAULT_ROLE: Role = 'Investigator';
 
 interface RoleContextValue {
   role: Role;
